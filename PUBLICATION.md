@@ -1,10 +1,14 @@
-# Publication checklist
+# Public portfolio scope and publication checklist
 
-This is a sanitized portfolio snapshot, not a production release.
+This repository is a sanitized portfolio edition of an independent project, not a production release. The original environment is private.
 
-- Start a new Git repository from these files; do not import, fork or mirror private history.
-- Review the original repository history independently and rotate any previously exposed credentials. In particular, replace or restrict the previous browser map key.
-- Verify that you own or are authorized to redistribute all remaining source code. The removed GiliMap component was identified in prior review as potentially derived from `maorcc/oref-map`; confirm whether any remaining code also derives from it, and comply with applicable license and attribution obligations before publishing. No repository-wide license has been assigned without that confirmation.
-- Bundled location datasets were excluded because redistribution rights were not established. Use authorized local copies only; do not add them back to source control without permission.
-- External frontend dependencies and tile providers have their own terms. Preserve their notices and attribution. This demo is not official and must not be used for public safety decisions.
-- Run a dedicated secret scanner, review the result, and validate the full stack in an isolated environment before changing visibility. Do not expose the demo server directly to the Internet.
+- The original private delivery flow used GitHub Actions, a self-hosted runner, Vault Agent/AppRole, SSH certificate signing and deployment over SSH/rsync.
+- `examples/deploy-vault.example.yml` is a reconstructed illustration, not a copy of the original private workflow or evidence of a public deployment run.
+- `.github/workflows/validate-portfolio.yml` is a newly prepared public configuration-only check. It has no deployment credentials and uses a GitHub-hosted runner.
+- Do not connect the public repository to the private runner, Vault instance or application host. Do not import or mirror private Git history.
+- Exclude credentials, tokens, private keys, infrastructure identifiers, actual deployment scripts, local `.env` files and runtime data. Review private history and rotate previously exposed credentials; replace or restrict any exposed map key.
+- Confirm ownership and redistribution rights before adding source code or data. Review any remaining code derived from third-party projects, including possible `maorcc/oref-map` material, and preserve applicable license notices and attribution. No repository-wide license is asserted without that review.
+- Do not distribute location datasets without permission. External map tiles and frontend dependencies have their own terms.
+- Run secret scanning and validate any future runnable release in an isolated environment before publication.
+
+This independent project is not an official emergency warning service and must not be used for safety decisions.

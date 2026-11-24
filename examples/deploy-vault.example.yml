@@ -1,0 +1,53 @@
+# Reconstructed, sanitized illustration of the original private deployment.
+# NOT installed under .github/workflows; do not execute against real infrastructure.
+# All repository variables below are placeholders. The runner must be privately
+# provisioned with Vault Agent, a trusted SSH host key, and the required tools.
+name: Deploy application (private architecture example)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: example-deployment
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, x64, private-deploy]
+    env:
+      VAULT_ADDR: ${{ vars.PRIVATE_VAULT_ADDR }}
+      VAULT_SSH_SIGN_PATH: ${{ vars.PRIVATE_VAULT_SSH_SIGN_PATH }}
+      VAULT_AGENT_TOKEN_FILE: ${{ vars.PRIVATE_VAULT_AGENT_TOKEN_FILE }}
+      DEPLOY_TARGET: ${{ vars.PRIVATE_DEPLOY_TARGET }}
+      DEPLOY_DIR: ${{ vars.PRIVATE_DEPLOY_DIR }}
+      DEPLOY_COMMAND: ${{ vars.PRIVATE_DEPLOY_COMMAND }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Sign ephemeral SSH key and deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${VAULT_ADDR:?}" "${VAULT_SSH_SIGN_PATH:?}" "${VAULT_AGENT_TOKEN_FILE:?}"
+          : "${DEPLOY_TARGET:?}" "${DEPLOY_DIR:?}" "${DEPLOY_COMMAND:?}"
+          umask 077
+          work=$(mktemp -d)
+          trap 'rm -rf -- "$work"' EXIT
+          key="$work/deploy_key"
+          ssh-keygen -q -t ed25519 -N '' -f "$key"
+          # Vault Agent authenticates separately via AppRole.
+          # Do not log the token or persist it in GitHub Actions artifacts.
+          VAULT_TOKEN="$(cat "$VAULT_AGENT_TOKEN_FILE")" \
+            vault write -field=signed_key "$VAULT_SSH_SIGN_PATH" \
+              public_key=@"$key.pub" > "$key-cert.pub"
+          ssh_opts=(-i "$key" -o "CertificateFile=$key-cert.pub"
+                    -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes)
+          # Illustrative sync; deliberately omits the original deletion option.
+          rsync -az --exclude='.git/' --exclude='.github/' --exclude='.env' \
+            --exclude='runtime/' \
+            -e "ssh -i $key -o CertificateFile=$key-cert.pub -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes" \
+            ./ "$DEPLOY_TARGET:$DEPLOY_DIR/"
+          ssh "${ssh_opts[@]}" "$DEPLOY_TARGET" "$DEPLOY_COMMAND"
