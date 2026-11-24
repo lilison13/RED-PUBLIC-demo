@@ -1,0 +1,3101 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>התראות פיקוד העורף בזמן אמת | צבע אדום | Red Alert</title>
+  <meta name="description" content="מפת התראות פיקוד העורף בזמן אמת עם צבע אדום, כטב&quot;מ, התראה מוקדמת, ציר זמן והיסטוריית יישובים מכל הארץ." />
+
+  <meta name="robots" content="index,follow" />
+  <meta property="og:title" content="התראות פיקוד העורף בזמן אמת | צבע אדום | Red Alert" />
+  <meta property="og:description" content="מפת התראות פיקוד העורף בזמן אמת עם צבע אדום, כטב&quot;מ, התראה מוקדמת וציר זמן חי." />
+  <meta property="og:type" content="website" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.20.0/dist/maplibre-gl.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/maplibre-gl@5.20.0/dist/maplibre-gl.js" crossorigin=""></script>
+  <style>
+    :root{
+      --bg:#120f14;
+      --panel:rgba(19,18,22,.84);
+      --panel-strong:rgba(14,13,18,.94);
+      --text:#f6f3ef;
+      --muted:#bdb7b0;
+      --border:rgba(255,255,255,.1);
+      --red:#ff3b3b;
+      --uav-red:#8b1e2d;
+      --yellow:#ffc247;
+      --green:#38d27a;
+      --gray:#73809a;
+      --blue:#52a7ff;
+      --shadow:0 20px 48px rgba(0,0,0,.32);
+      --safe-top:max(14px, env(safe-area-inset-top));
+      --safe-right:max(14px, env(safe-area-inset-right));
+      --safe-bottom:max(14px, env(safe-area-inset-bottom));
+      --safe-left:max(14px, env(safe-area-inset-left));
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    :focus-visible{outline:2px solid #69c5ff;outline-offset:2px}
+    body{
+      font-family:"Segoe UI",Arial,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      overflow:hidden;
+      min-height:100vh;
+      min-height:100dvh;
+      overscroll-behavior:none;
+    }
+
+    #map{
+      width:100%;
+      height:100vh;
+      height:100dvh;
+      direction:ltr;
+    }
+    #map .maplibregl-canvas{outline:none}
+
+    .glass{
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      box-shadow:var(--shadow);
+      border:1px solid var(--border);
+    }
+
+    .floating-draggable{
+      user-select:none;
+    }
+
+    .floating-draggable.dragging{
+      cursor:grabbing;
+    }
+
+    .floating-draggable button,
+    .floating-draggable input,
+    .floating-draggable a,
+    .floating-draggable [role="button"]{
+      user-select:auto;
+    }
+
+    .drag-handle{
+      cursor:grab;
+      touch-action:none;
+      user-select:none;
+    }
+
+    .floating-draggable.dragging .drag-handle{
+      cursor:grabbing;
+    }
+
+    .topbar{
+      position:fixed;
+      top:var(--safe-top);
+      left:50%;
+      transform:translateX(-50%);
+      z-index:1000;
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:10px;
+      padding:10px 14px;
+      border-radius:24px;
+      background:rgba(16,15,19,.9);
+      width:min(1040px, calc(100vw - 32px));
+      justify-content:flex-start;
+    }
+
+    .topbar-brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+      flex:0 0 auto;
+    }
+
+    .topbar-grip{
+      width:34px;
+      min-width:34px;
+      height:48px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:14px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.06);
+      color:var(--muted);
+      font-size:14px;
+      letter-spacing:.12em;
+    }
+
+    .topbar-actions,
+    .topbar-tools{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .topbar-actions{
+      flex:1 1 auto;
+      min-width:0;
+      justify-content:flex-start;
+    }
+
+    .topbar-tools{
+      justify-content:flex-start;
+      flex:1 1 auto;
+    }
+
+    .mobile-menu-btn{
+      display:none;
+      position:fixed;
+      top:var(--safe-top);
+      right:var(--safe-right);
+      z-index:1002;
+      width:46px;
+      height:46px;
+      border:none;
+      border-radius:999px;
+      background:rgba(18,14,28,.92);
+      color:var(--text);
+      font-size:20px;
+      box-shadow:var(--shadow);
+      cursor:pointer;
+    }
+
+    .mobile-status-btn{
+      display:none;
+      position:fixed;
+      top:var(--safe-top);
+      left:var(--safe-left);
+      z-index:1002;
+      width:46px;
+      height:46px;
+      border:none;
+      border-radius:14px;
+      background:rgba(18,14,28,.92);
+      color:var(--text);
+      box-shadow:var(--shadow);
+      cursor:pointer;
+      padding:0;
+    }
+
+    .mobile-status-btn.gray{background:rgba(115,128,154,.86)}
+    .mobile-status-btn.green{background:rgba(56,210,122,.86)}
+    .mobile-status-btn.yellow{background:rgba(255,194,71,.9); color:#1c1424}
+    .mobile-status-btn.purple{background:rgba(139,30,45,.92)}
+    .mobile-status-btn.red{background:rgba(255,59,59,.92)}
+
+    .mobile-status-btn .status-dot{
+      margin:0 auto;
+      width:14px;
+      height:14px;
+    }
+
+    .mobile-backdrop{
+      display:none;
+      position:fixed;
+      inset:0;
+      z-index:1000;
+      background:rgba(6,7,12,.28);
+    }
+
+    .top-link,.toggle-btn,.timeline-btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:38px;
+      padding:0 12px;
+      border-radius:12px;
+      text-decoration:none;
+      color:var(--text);
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.06);
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .top-link.compact{min-width:42px;padding:0 12px}
+
+    .top-link{
+      position:relative;
+      min-width:240px;
+      min-height:52px;
+      padding:0 20px;
+      border-radius:18px;
+      background:linear-gradient(135deg, rgba(98,28,35,.96), rgba(56,23,30,.94));
+      border-color:rgba(255,126,126,.28);
+      box-shadow:0 12px 28px rgba(58, 10, 16, .28);
+      font-weight:900;
+      font-size:15px;
+      letter-spacing:.01em;
+      white-space:nowrap;
+      overflow:hidden;
+    }
+
+    .top-link::before{
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(90deg, rgba(255,80,80,.14), transparent 42%);
+      pointer-events:none;
+    }
+
+    .top-link:hover{
+      background:linear-gradient(135deg, rgba(118,34,42,.98), rgba(70,26,34,.96));
+    }
+
+    .action-btn{
+      --btn-accent:rgba(255,255,255,.12);
+      display:grid;
+      grid-template-columns:30px minmax(0, 1fr);
+      align-items:center;
+      gap:10px;
+      min-height:52px;
+      min-width:132px;
+      flex:1 1 132px;
+      padding:8px 12px;
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:18px;
+      background:linear-gradient(180deg, rgba(38,38,45,.95), rgba(28,29,35,.92));
+      color:var(--text);
+      font:inherit;
+      font-weight:800;
+      cursor:pointer;
+      text-align:right;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+    }
+
+    .topbar-tools .action-btn{
+      min-width:126px;
+      flex:1 1 126px;
+    }
+
+    @media (max-width: 1180px){
+      .topbar{
+        width:min(900px, calc(100vw - 24px));
+      }
+      .topbar-brand{
+        flex:1 1 100%;
+      }
+      .topbar-actions,
+      .topbar-tools{
+        flex:1 1 100%;
+      }
+    }
+
+    .action-btn:hover{
+      transform:translateY(-1px);
+      border-color:rgba(255,255,255,.12);
+    }
+
+    .btn-icon{
+      width:30px;
+      height:30px;
+      border-radius:11px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--btn-accent);
+      color:#fff6f0;
+      font-size:13px;
+      font-weight:900;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+
+    .btn-copy{
+      display:grid;
+      gap:2px;
+      min-width:0;
+    }
+
+    .action-btn strong{
+      font-size:13px;
+      font-weight:800;
+      line-height:1.1;
+      white-space:nowrap;
+    }
+
+    .action-btn span{
+      color:var(--muted);
+      font-size:10px;
+      font-weight:700;
+      line-height:1.1;
+      white-space:nowrap;
+    }
+
+    .action-btn.live-active{
+      --btn-accent:rgba(56,210,122,.26);
+      background:linear-gradient(180deg, rgba(26,53,42,.96), rgba(19,35,29,.94));
+      color:var(--green);
+      border-color:rgba(56,210,122,.26);
+    }
+
+    .action-btn.active{
+      --btn-accent:rgba(82,167,255,.24);
+      background:linear-gradient(180deg, rgba(25,39,58,.98), rgba(20,30,44,.96));
+      color:#e6f1ff;
+      border-color:rgba(82,167,255,.24);
+      box-shadow:inset 0 0 0 1px rgba(82,167,255,.16);
+    }
+
+    .action-btn.warn{
+      --btn-accent:rgba(255,194,71,.2);
+      background:linear-gradient(180deg, rgba(61,49,24,.94), rgba(39,32,18,.92));
+      color:#ffe3a2;
+      border-color:rgba(255,194,71,.18);
+    }
+
+    .status-card{
+      position:fixed;
+      top:calc(var(--safe-top) + 96px);
+      right:var(--safe-right);
+      z-index:1000;
+      width:min(360px, calc(100vw - 28px));
+      padding:12px;
+      border-radius:18px;
+      background:linear-gradient(180deg, rgba(16,15,19,.95), rgba(24,20,24,.88));
+    }
+
+    .menu-status{
+      display:none;
+    }
+
+    .menu-status-title{
+      font-size:14px;
+      font-weight:800;
+      margin-bottom:4px;
+    }
+
+    .menu-status-meta{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+
+    .status-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+
+    .status-collapse{
+      width:30px;
+      height:30px;
+      min-width:30px;
+      border:none;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      color:var(--text);
+      font:inherit;
+      cursor:pointer;
+    }
+
+    .status-card.hidden .status-body{
+      display:none;
+    }
+
+    .status-row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-weight:800;
+      font-size:15px;
+    }
+
+    .status-dot{
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      flex:0 0 auto;
+    }
+
+    .status-dot.red{background:var(--red)}
+    .status-dot.purple{background:var(--uav-red)}
+    .status-dot.yellow{background:var(--yellow)}
+    .status-dot.green{background:var(--green)}
+    .status-dot.gray{background:var(--gray)}
+
+    .status-meta{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.55;
+    }
+
+    .status-body{
+      display:grid;
+      gap:10px;
+    }
+
+    .status-area{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      min-height:30px;
+      padding:7px 10px;
+      border-radius:12px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .status-area strong{
+      color:var(--text);
+      font-size:12px;
+      font-weight:800;
+    }
+
+    .status-tools{display:none}
+
+    .legend-panel{
+      position:fixed;
+      right:var(--safe-right);
+      bottom:calc(var(--safe-bottom) + 22px);
+      z-index:1000;
+      width:min(260px, calc(100vw - 24px));
+      padding:14px;
+      border-radius:18px;
+      background:rgba(16,15,19,.92);
+    }
+
+    .legend-panel.hidden{display:none}
+
+    .legend-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+    }
+
+    .legend-title{
+      font-size:15px;
+      font-weight:800;
+    }
+
+    .legend-panel .panel-close{
+      display:none;
+    }
+
+    .legend-items{
+      display:grid;
+      gap:10px;
+    }
+
+    .legend-item{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+    }
+
+    .legend-swatch{
+      width:14px;
+      height:14px;
+      border-radius:999px;
+      flex:0 0 auto;
+      box-shadow:0 0 0 1px rgba(255,255,255,.08) inset;
+    }
+
+    .legend-swatch.red{background:var(--red)}
+    .legend-swatch.purple{background:var(--uav-red)}
+    .legend-swatch.yellow{background:var(--yellow)}
+    .legend-swatch.green{background:var(--green)}
+    .legend-swatch.gray{background:var(--gray)}
+
+    .mobile-legend-btn{
+      display:none;
+      position:fixed;
+      right:var(--safe-right);
+      bottom:calc(var(--safe-bottom) + 72px);
+      z-index:1002;
+      width:46px;
+      height:46px;
+      border:none;
+      border-radius:999px;
+      padding:0;
+      background:rgba(18,14,28,.92);
+      color:var(--text);
+      box-shadow:var(--shadow);
+      font:inherit;
+      font-weight:800;
+      font-size:22px;
+      line-height:1;
+      cursor:pointer;
+    }
+
+    .toggle-btn.active{
+      background:rgba(56,210,122,.16);
+      border-color:rgba(56,210,122,.4);
+    }
+
+    .toggle-btn.warn{
+      background:rgba(255,194,71,.14);
+      border-color:rgba(255,194,71,.35);
+    }
+
+    .toggle-btn.info{
+      background:rgba(169,92,255,.14);
+      border-color:rgba(169,92,255,.34);
+    }
+
+    .toggle-btn.primary-action{
+      background:linear-gradient(135deg, rgba(78,161,255,.24), rgba(169,92,255,.2));
+      border-color:rgba(78,161,255,.38);
+      box-shadow:0 10px 24px rgba(20,16,36,.18);
+    }
+
+    .timeline{
+      position:fixed;
+      left:var(--safe-left);
+      bottom:calc(var(--safe-bottom) + 22px);
+      z-index:1000;
+      width:min(460px, calc(100vw - 24px));
+      padding:14px;
+      border-radius:20px;
+      background:var(--panel-strong);
+    }
+    .timeline.hidden{display:none}
+
+    .timeline-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .timeline-head{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+    }
+
+    .panel-close{
+      width:30px;
+      height:30px;
+      min-width:30px;
+      border:none;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      color:var(--text);
+      font:inherit;
+      font-size:18px;
+      line-height:1;
+      cursor:pointer;
+    }
+
+    .timeline-title{
+      font-weight:800;
+      font-size:18px;
+    }
+
+    .timeline-meta{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .timeline input[type="range"]{
+      width:100%;
+      accent-color:#ff7ab2;
+    }
+
+    .timeline-track{
+      position:relative;
+      width:100%;
+      height:10px;
+      margin:4px 0 10px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      overflow:hidden;
+    }
+
+    .timeline-track span{
+      position:absolute;
+      top:0;
+      bottom:0;
+      border-radius:999px;
+      opacity:.92;
+    }
+
+    .timeline-actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .timeline-extra.hidden{
+      display:none;
+    }
+
+    #historyCollapseBtn{
+      width:100%;
+      margin-top:10px;
+    }
+
+    .history-list{
+      display:grid;
+      gap:6px;
+      margin-top:12px;
+      max-height:232px;
+      overflow:auto;
+      padding-left:2px;
+    }
+
+    .history-item{
+      width:100%;
+      display:grid;
+      gap:4px;
+      text-align:right;
+      padding:11px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      cursor:pointer;
+      font:inherit;
+    }
+
+    .history-item.active{
+      border-color:rgba(82,167,255,.34);
+      box-shadow:inset 0 0 0 1px rgba(82,167,255,.18);
+      background:rgba(82,167,255,.08);
+    }
+
+    .history-item-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .history-item strong{
+      font-size:13px;
+      line-height:1.45;
+    }
+
+    .history-item span{
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.5;
+    }
+
+    .kind-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:22px;
+      padding:0 8px;
+      border-radius:999px;
+      font-size:10px;
+      font-weight:800;
+      border:1px solid rgba(255,255,255,.14);
+      white-space:nowrap;
+    }
+
+    .kind-badge.red{background:rgba(255,59,59,.2); color:#ffe0e0; border-color:rgba(255,59,59,.34)}
+    .kind-badge.purple{background:rgba(139,30,45,.24); color:#ffdbe1; border-color:rgba(139,30,45,.42)}
+    .kind-badge.yellow{background:rgba(255,194,71,.18); color:#ffe6b1; border-color:rgba(255,194,71,.34)}
+    .kind-badge.green{background:rgba(56,210,122,.16); color:#b6f2cb; border-color:rgba(56,210,122,.34)}
+    .kind-badge.gray{background:rgba(115,128,154,.16); color:#dbe0ea; border-color:rgba(115,128,154,.3)}
+
+    .history-empty{
+      padding:14px;
+      border-radius:16px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.55;
+    }
+
+    .location-panel{
+      position:fixed;
+      top:calc(var(--safe-top) + 96px);
+      left:var(--safe-left);
+      z-index:1000;
+      width:min(390px, calc(100vw - 24px));
+      max-height:min(calc(100vh - 160px), 720px);
+      padding:14px;
+      border-radius:20px;
+      background:rgba(16,15,19,.96);
+      overflow:auto;
+    }
+
+    .location-panel.hidden{display:none}
+
+    .search-panel{
+      position:fixed;
+      top:calc(var(--safe-top) + 96px);
+      right:calc(var(--safe-right) + 460px);
+      z-index:1000;
+      width:min(320px, calc(100vw - 48px));
+      max-height:min(58vh, 460px);
+      padding:14px;
+      border-radius:18px;
+      background:rgba(16,15,19,.96);
+      overflow:auto;
+    }
+
+    .search-panel.hidden{display:none}
+
+    .search-panel h2{
+      margin:0 0 6px;
+      font-size:18px;
+    }
+
+    .search-box{
+      width:100%;
+      min-height:42px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      padding:0 12px;
+      font:inherit;
+      margin-bottom:10px;
+    }
+
+    .search-box::placeholder{color:var(--muted)}
+
+    .search-results{
+      display:grid;
+      gap:8px;
+    }
+
+    .search-item{
+      width:100%;
+      text-align:right;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.05);
+      color:var(--text);
+      border-radius:12px;
+      padding:11px 12px;
+      cursor:pointer;
+      font:inherit;
+    }
+
+    .search-item strong{
+      display:block;
+      font-size:14px;
+      margin-bottom:4px;
+    }
+
+    .search-item span{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .location-panel-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+
+    .location-panel h2{
+      margin:0 0 8px;
+      font-size:22px;
+    }
+
+    .location-panel .small{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.55;
+      margin-bottom:12px;
+    }
+
+    .panel-section-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+
+    .panel-area{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+      padding:8px 10px;
+      border-radius:12px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+      color:var(--muted);
+      font-size:11px;
+      font-weight:700;
+    }
+
+    .panel-area strong{
+      color:var(--text);
+      font-size:12px;
+      font-weight:800;
+    }
+
+    .event-list{
+      display:grid;
+      gap:8px;
+    }
+
+    .event-card{
+      width:100%;
+      text-align:right;
+      padding:12px;
+      border-radius:14px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+      font:inherit;
+      color:var(--text);
+      cursor:pointer;
+    }
+
+    .event-card strong{
+      display:block;
+      margin-bottom:4px;
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .event-card span{
+      display:block;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.55;
+    }
+
+    .event-card.active{
+      border-color:rgba(82,167,255,.34);
+      background:rgba(82,167,255,.08);
+      box-shadow:inset 0 0 0 1px rgba(82,167,255,.14);
+    }
+
+    .event-card-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:2px;
+    }
+
+    .close-btn{
+      position:absolute;
+      top:12px;
+      left:12px;
+      border:none;
+      background:transparent;
+      color:var(--muted);
+      font-size:22px;
+      cursor:pointer;
+    }
+
+    .desktop-only{
+      display:block;
+    }
+
+    @media (max-width: 1200px){
+      .search-panel{
+        right:var(--safe-right);
+        top:calc(var(--safe-top) + 250px);
+      }
+    }
+
+    @media (max-width: 900px){
+      .topbar{
+        width:min(700px, calc(100vw - 24px));
+      }
+      .status-card{
+        width:min(360px, calc(100vw - 24px));
+      }
+      .location-panel{
+        width:min(360px, calc(100vw - 24px));
+      }
+    }
+
+    @media (max-width: 640px){
+      .desktop-only{
+        display:none;
+      }
+      .mobile-menu-btn{
+        display:block;
+      }
+      .mobile-status-btn{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+      }
+      .mobile-backdrop.open{
+        display:block;
+      }
+      .mobile-legend-btn{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+      }
+      .legend-panel .panel-close{
+        display:inline-flex;
+      }
+      .topbar{
+        top:calc(var(--safe-top) + 54px);
+        right:var(--safe-right);
+        left:auto;
+        transform:translateX(calc(100% + 18px));
+        opacity:0;
+        visibility:hidden;
+        pointer-events:none;
+        flex-direction:column;
+        align-items:stretch;
+        justify-content:flex-start;
+        gap:6px;
+        width:min(222px, calc(100vw - 40px));
+        padding:8px;
+        border-radius:20px;
+        transition:transform .22s ease, opacity .18s ease, visibility .18s ease;
+        z-index:1001;
+      }
+      .topbar.open{
+        transform:translateX(0);
+        opacity:1;
+        visibility:visible;
+        pointer-events:auto;
+      }
+      .status-card{
+        display:none;
+      }
+      .menu-status{
+        display:none;
+      }
+      .status-card.mobile-open{
+        display:block;
+        top:calc(var(--safe-top) + 54px);
+        left:var(--safe-left);
+        right:var(--safe-right);
+        transform:none;
+        width:auto;
+        padding:12px;
+        border-radius:18px;
+        z-index:1001;
+      }
+      .topbar-brand,
+      .topbar-context,
+      .topbar-actions,
+      .topbar-tools{
+        display:contents;
+      }
+      .action-btn,.top-link{
+        width:100%;
+        min-height:36px;
+        height:36px;
+        font-size:12px;
+        padding:0 10px;
+        flex:0 0 auto;
+      }
+      .top-link{
+        min-width:0;
+        min-height:38px;
+        height:38px;
+        font-size:12px;
+        border-radius:10px;
+        padding:0 10px;
+      }
+      .action-btn{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        min-width:0;
+        min-height:36px;
+        height:36px;
+        border-radius:10px;
+        text-align:center;
+        padding:0 10px;
+      }
+      .btn-icon{
+        display:none;
+      }
+      .btn-copy{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        width:100%;
+        min-width:0;
+      }
+      .btn-copy > span{
+        display:none;
+      }
+      .btn-copy > strong{
+        display:inline;
+        font-size:11px;
+        line-height:1.1;
+        white-space:nowrap;
+      }
+      .search-panel,
+      .location-panel{
+        left:var(--safe-left);
+        right:var(--safe-right);
+        transform:none;
+        width:auto;
+      }
+      .search-panel{
+        top:calc(var(--safe-top) + 112px);
+        max-height:min(52vh, 360px);
+        padding:14px;
+      }
+      .location-panel{
+        bottom:calc(var(--safe-bottom) + 8px);
+        top:auto;
+        max-height:min(58vh, 420px);
+        padding:16px 14px 18px;
+        border-radius:24px 24px 20px 20px;
+      }
+      .timeline{
+        left:var(--safe-left);
+        right:var(--safe-right);
+        transform:none;
+        bottom:var(--safe-bottom);
+        width:auto;
+        padding:10px 12px;
+      }
+      .timeline-top{
+        align-items:flex-start;
+        gap:6px;
+        margin-bottom:8px;
+      }
+      .timeline-title{font-size:13px}
+      .timeline-meta{font-size:11px}
+      .timeline-actions{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+      }
+      .timeline-btn{
+        min-height:36px;
+        font-size:12px;
+      }
+      .history-list{
+        max-height:160px;
+      }
+      .timeline,
+      .search-panel,
+      .location-panel,
+      .legend-panel{
+        border-radius:18px;
+      }
+      .legend-panel{
+        left:var(--safe-left);
+        right:var(--safe-right);
+        bottom:calc(var(--safe-bottom) + 122px);
+        width:auto;
+      }
+      .leaflet-control-zoom{
+        margin-bottom:84px !important;
+      }
+    }
+
+    @media (max-width: 640px) and (max-height: 740px){
+      .search-panel{
+        max-height:min(46vh, 280px);
+      }
+      .location-panel{
+        max-height:min(52vh, 320px);
+      }
+    }
+  </style>
+</head>
+<body>
+<div role="note" style="position:relative;z-index:9999;padding:10px;background:#fff2b3;color:#222;font: bold 14px Arial,sans-serif;text-align:center">גרסת הדגמה • פרויקט לא רשמי. אין להסתמך עליו לקבלת החלטות בטיחות. יש לפעול לפי הנחיות פיקוד העורף.</div>
+  <div id="map" role="region" aria-label="מפה מלאה וחיה של התרעות ברחבי ישראל"></div>
+  <div class="mobile-backdrop" id="mobileBackdrop"></div>
+  <button class="mobile-menu-btn" type="button" id="mobileMenuBtn" aria-label="פתיחת תפריט">☰</button>
+  <button class="mobile-status-btn gray" type="button" id="mobileStatusBtn" aria-label="פתיחת מצב נוכחי">
+    <span class="status-dot gray" id="mobileStatusDot"></span>
+  </button>
+  <button class="mobile-legend-btn" type="button" id="mobileLegendBtn" aria-label="פתיחת מקרא" title="מקרא">i</button>
+
+  <header class="topbar glass">
+    <div class="menu-status" id="menuStatus">
+      <div class="status-row" style="margin-bottom:6px;">
+        <span class="status-dot gray" id="menuStatusDot"></span>
+        <span class="menu-status-title" id="menuStatusTitle">ממתין לנתונים</span>
+      </div>
+      <div class="menu-status-meta" id="menuStatusMeta">טוען סטטוס, היסטוריה, אזורים ופוליגונים...</div>
+    </div>
+    <div class="topbar-brand">
+      <div class="topbar-grip desktop-only" aria-hidden="true">::</div>
+      <a class="top-link" href="/" id="homeLink" aria-label="בחזרה ל Red Alert">בחזרה ל Red Alert</a>
+      <a class="top-link compact" href="/#accessibility">הבהרת נגישות</a>
+    </div>
+    <div class="topbar-actions">
+      <button class="action-btn" type="button" id="searchBtn">
+        <span class="btn-icon" aria-hidden="true">⌕</span>
+        <span class="btn-copy"><span>איתור מהיר</span><strong>חיפוש יישוב</strong></span>
+      </button>
+      <button class="action-btn" type="button" id="liveBtn" aria-label="חזרה למצב חי" title="חזרה למצב חי">
+        <span class="btn-icon" aria-hidden="true">●</span>
+        <span class="btn-copy"><span>זמן אמת</span><strong>Live</strong></span>
+      </button>
+      <button class="action-btn" type="button" id="timelineToggleBtn">
+        <span class="btn-icon" aria-hidden="true">◷</span>
+        <span class="btn-copy"><span>הסטוריה</span><strong>הסטוריה</strong></span>
+      </button>
+    </div>
+    <div class="topbar-tools">
+      <button class="action-btn warn" type="button" id="autoZoomBtn">
+        <span class="btn-icon" aria-hidden="true">◎</span>
+        <span class="btn-copy"><span>מיקוד מפה</span><strong>זום אוטומטי</strong></span>
+      </button>
+      <button class="action-btn" type="button" id="soundBtn">
+        <span class="btn-icon" aria-hidden="true">♪</span>
+        <span class="btn-copy"><span>התראה קולית</span><strong>סאונד פעיל</strong></span>
+      </button>
+    </div>
+  </header>
+
+  <aside class="status-card glass">
+    <div class="status-head">
+      <div>
+        <div class="status-row">
+          <span class="status-dot gray" id="statusDot"></span>
+          <span id="statusTitle">התראות</span>
+        </div>
+      </div>
+      <button class="status-collapse" type="button" id="statusCollapseBtn" aria-label="סגירת התראות">−</button>
+    </div>
+    <div class="status-body">
+      <div class="status-meta" id="statusMeta">טוען סטטוס, היסטוריה, אזורים ופוליגונים...</div>
+      <div class="status-area" id="statusAreaRow"><span>אזור התרעה</span><strong id="statusAreaLabel">-</strong></div>
+    </div>
+  </aside>
+
+  <aside class="search-panel glass hidden" id="searchPanel">
+    <h2>חיפוש יישוב</h2>
+    <input class="search-box" id="searchInput" type="text" placeholder="חפשי יישוב כדי לפתוח היסטוריית התרעות" />
+    <div class="search-results" id="searchResults"></div>
+  </aside>
+
+  <aside class="location-panel glass hidden" id="locationPanel">
+    <button class="close-btn" type="button" id="closePanelBtn" aria-label="סגירה">×</button>
+    <div class="location-panel-head">
+      <div>
+        <h2 id="panelTitle">יישוב</h2>
+        <div class="small" id="panelMeta">פרטי היישוב</div>
+      </div>
+    </div>
+    <div class="panel-area"><span>אזור התרעה</span><strong id="panelAreaLabel">-</strong></div>
+    <div class="panel-section-title">
+      <span>אירועים אחרונים</span>
+      <span id="panelSectionMeta">0</span>
+    </div>
+    <div class="event-list" id="panelEvents"></div>
+  </aside>
+
+  <section class="timeline glass hidden" id="timelinePanel">
+    <div class="timeline-top">
+      <div class="timeline-head">
+        <button class="panel-close" type="button" id="timelineCloseBtn" aria-label="סגירת ציר זמן">×</button>
+        <div>
+          <div class="timeline-title">היסטוריה</div>
+          <div class="timeline-meta" id="timelineLabel">מצב חי</div>
+        </div>
+      </div>
+      <div class="timeline-meta" id="timelineSummary">0 נקודות זמן זמינות</div>
+    </div>
+    <div class="timeline-track" id="timelineTrack"></div>
+    <input id="timelineRange" type="range" min="0" max="0" step="1" value="0" />
+    <div class="timeline-actions">
+      <button class="timeline-btn" type="button" id="prevBtn">קודם</button>
+      <button class="timeline-btn" type="button" id="nextBtn">הבא</button>
+    </div>
+    <button class="timeline-btn" type="button" id="historyCollapseBtn">היסטוריית התראות</button>
+    <div class="timeline-extra hidden" id="timelineExtra">
+      <div class="panel-area"><span>אזור התרעה</span><strong id="timelineAreaLabel">-</strong></div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+  </section>
+
+  <aside class="legend-panel glass" id="legendPanel">
+    <div class="legend-head">
+      <div class="legend-title">מקרא</div>
+      <button class="panel-close" type="button" id="legendCloseBtn" aria-label="סגירת מקרא">×</button>
+    </div>
+    <div class="legend-items">
+      <div class="legend-item"><span class="legend-swatch red"></span><span>ירי רקטות / טילים</span></div>
+      <div class="legend-item"><span class="legend-swatch purple"></span><span>כלי טיס בלתי מאויש / כטב"מ</span></div>
+      <div class="legend-item"><span class="legend-swatch yellow"></span><span>התראה מוקדמת</span></div>
+      <div class="legend-item"><span class="legend-swatch green"></span><span>האירוע הסתיים</span></div>
+      <div class="legend-item"><span class="legend-swatch gray"></span><span>ללא אירוע פעיל</span></div>
+    </div>
+  </aside>
+
+  <script>
+    const CONFIG = {
+      STATUS_URL: '/red/api/status',
+      HISTORY_URL: '/red/api/history',
+      LOCALITIES_URL: '/red/api/localities',
+      ZONES_URL: '/red/api/zones',
+      POLYGONS_URL: './location-polygons.json',
+      MAPTILER_API_KEY: '',
+      MAPTILER_STYLE: 'streets-v2',
+      ISRAEL_BOUNDS: [[25.5, 29.0], [37.5, 37.2]],
+      DEFAULT_VIEW_BOUNDS: [[34.15, 29.35], [35.95, 33.35]],
+      DEFAULT_CENTER: [35.02, 31.78],
+      POLL_MS: 4000,
+      GREEN_FADE_MS: 60000,
+      DEFAULT_ALERT_MS: 5 * 60 * 1000,
+      UAV_ALERT_MS: 5 * 60 * 1000,
+      EARLY_WARNING_MS: 10 * 60 * 1000,
+      SESSION_GAP_MS: 10 * 60 * 1000
+    };
+
+    const SOUND_KEY = 'beready_map_sound_enabled';
+    const KIND_PRIORITY = { gray: 0, green: 1, yellow: 2, purple: 3, red: 4 };
+
+    const state = {
+      map: null,
+      mapEngine: 'vector',
+      mapLoaded: false,
+      polygonLayer: null,
+      localities: [],
+      zones: {},
+      polygons: {},
+      cells: [],
+      byName: new Map(),
+      status: null,
+      history: [],
+      timelinePoints: [],
+      eventPeaks: [],
+      displayMode: 'live',
+      selectedIndex: 0,
+      selectedCity: null,
+      hoveredCity: null,
+      error: null,
+      audioEnabled: localStorage.getItem(SOUND_KEY) === '1',
+      lastSoundKey: null,
+      lastFocusKey: '',
+      currentSnapshot: null,
+      userHasMovedMap: false,
+      ignoreMapMoveUntil: 0,
+      autoZoomEnabled: localStorage.getItem('beready_map_auto_zoom') !== '0'
+    };
+
+    const els = {
+      statusCard: document.querySelector('.status-card'),
+      topbar: document.querySelector('.topbar'),
+      statusDot: document.getElementById('statusDot'),
+      statusTitle: document.getElementById('statusTitle'),
+      statusMeta: document.getElementById('statusMeta'),
+      statusAreaRow: document.getElementById('statusAreaRow'),
+      statusAreaLabel: document.getElementById('statusAreaLabel'),
+      menuStatusDot: document.getElementById('menuStatusDot'),
+      menuStatusTitle: document.getElementById('menuStatusTitle'),
+      menuStatusMeta: document.getElementById('menuStatusMeta'),
+      mobileStatusBtn: document.getElementById('mobileStatusBtn'),
+      mobileStatusDot: document.getElementById('mobileStatusDot'),
+      mobileMenuBtn: document.getElementById('mobileMenuBtn'),
+      mobileLegendBtn: document.getElementById('mobileLegendBtn'),
+      mobileBackdrop: document.getElementById('mobileBackdrop'),
+      homeLink: document.getElementById('homeLink'),
+      timelineRange: document.getElementById('timelineRange'),
+      timelineTrack: document.getElementById('timelineTrack'),
+      timelineLabel: document.getElementById('timelineLabel'),
+      timelineSummary: document.getElementById('timelineSummary'),
+      timelinePanel: document.getElementById('timelinePanel'),
+      timelineToggleBtn: document.getElementById('timelineToggleBtn'),
+      timelineCloseBtn: document.getElementById('timelineCloseBtn'),
+      historyCollapseBtn: document.getElementById('historyCollapseBtn'),
+      timelineExtra: document.getElementById('timelineExtra'),
+      timelineAreaLabel: document.getElementById('timelineAreaLabel'),
+      historyList: document.getElementById('historyList'),
+      statusCollapseBtn: document.getElementById('statusCollapseBtn'),
+      liveBtn: document.getElementById('liveBtn'),
+      autoZoomBtn: document.getElementById('autoZoomBtn'),
+      searchBtn: document.getElementById('searchBtn'),
+      searchPanel: document.getElementById('searchPanel'),
+      searchInput: document.getElementById('searchInput'),
+      searchResults: document.getElementById('searchResults'),
+      prevBtn: document.getElementById('prevBtn'),
+      nextBtn: document.getElementById('nextBtn'),
+      soundBtn: document.getElementById('soundBtn'),
+      legendPanel: document.getElementById('legendPanel'),
+      legendCloseBtn: document.getElementById('legendCloseBtn'),
+      locationPanel: document.getElementById('locationPanel'),
+      closePanelBtn: document.getElementById('closePanelBtn'),
+      panelTitle: document.getElementById('panelTitle'),
+      panelMeta: document.getElementById('panelMeta'),
+      panelAreaLabel: document.getElementById('panelAreaLabel'),
+      panelSectionMeta: document.getElementById('panelSectionMeta'),
+      panelEvents: document.getElementById('panelEvents')
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function normalizeText(value = '') {
+      return String(value)
+        .trim()
+        .replace(/[׳‘’‛`´]/g, "'")
+        .replace(/[“”״]/g, '"')
+        .replace(/\s*-\s*/g, ' - ')
+        .replace(/\s+/g, ' ');
+    }
+
+    function normalizeCities(list = []) {
+      return [...new Set((list || []).map(normalizeText))].filter(Boolean);
+    }
+
+    function isUavAlertText(text = '') {
+      return text.includes('×›×˜×‘') ||
+        text.includes('×‘×œ×ª×™ ×ž××•×™×©') ||
+        text.includes('×›×œ×™ ×˜×™×¡ ×¢×•×™×Ÿ');
+    }
+
+    function classifyAlert(title = '', desc = '') {
+      const text = normalizeText(`${title} ${desc}`).toLowerCase();
+      if (!text) return 'gray';
+      if (isUavAlertText(text)) return 'purple';
+      if (
+        text.includes('האירוע הסתיים') ||
+        text.includes('ניתן לצאת') ||
+        text.includes('החשש הוסר') ||
+        text.includes('יכולים לצאת')
+      ) return 'green';
+      if (
+        text.includes('בדקות הקרובות') ||
+        text.includes('לשפר את המיקום למיגון') ||
+        text.includes('לשהות בסמיכות')
+      ) return 'yellow';
+      if (text.includes('כלי טיס עוין') || text.includes('כטב')) return 'purple';
+      if (
+        text.includes('ירי רקטות') ||
+        text.includes('טילים') ||
+        text.includes('רקטות') ||
+        text.includes('חדירת מחבלים') ||
+        text.includes('היכנסו למרחב המוגן')
+      ) return 'red';
+      return 'gray';
+    }
+
+    function colorForKind(kind) {
+      return {
+        red: '#ff3b3b',
+        purple: '#8b1e2d',
+        yellow: '#ffc247',
+        green: '#38d27a',
+        gray: '#73809a'
+      }[kind] || '#73809a';
+    }
+
+    function labelForKind(kind) {
+      if (kind === 'purple') return 'כלי טיס בלתי מאויש / כטב"מ';
+      return {
+        red: 'ירי רקטות / טילים',
+        purple: 'חדירת כלי טיס עוין',
+        yellow: 'התרעה מוקדמת',
+        green: 'האירוע הסתיים',
+        gray: 'ללא אירוע פעיל'
+      }[kind] || 'ללא אירוע פעיל';
+    }
+
+    function parseTs(item) {
+      if (item && Number.isFinite(Number(item.ts))) return Number(item.ts);
+      const raw = item?.alertDate || item?.datetime || item?.alert?.alertDate;
+      const parsed = raw ? Date.parse(raw) : NaN;
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    async function fetchJson(url) {
+      const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}ts=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { Accept: 'application/json' }
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status} from ${url}`);
+      return response.json();
+    }
+
+    function buildFallbackPolygon(lat, lon, countdown = 60) {
+      const radiusLat = Math.max(0.008, Math.min(0.032, countdown / 5000));
+      const cosLat = Math.max(0.01, Math.cos(lat * Math.PI / 180));
+      const radiusLon = radiusLat / cosLat;
+      const ring = [];
+      for (let index = 0; index < 8; index += 1) {
+        const angle = ((index / 8) * 2 * Math.PI) + (Math.PI / 8);
+        ring.push([
+          +(lon + (Math.cos(angle) * radiusLon)).toFixed(6),
+          +(lat + (Math.sin(angle) * radiusLat)).toFixed(6)
+        ]);
+      }
+      return [ring];
+    }
+
+    function polygonLonLatToLeaflet(rings) {
+      if (!Array.isArray(rings) || !rings.length) return [];
+
+      const looksLikePoint = value =>
+        Array.isArray(value) &&
+        value.length >= 2 &&
+        typeof value[0] === 'number' &&
+        typeof value[1] === 'number';
+
+      const normalizedRings = looksLikePoint(rings[0]) ? [rings] : rings;
+      return normalizedRings.map(ring =>
+        (ring || [])
+          .filter(looksLikePoint)
+          .map(([a, b]) => {
+            const looksLikeLatLng = a >= 28 && a <= 34 && b >= 34 && b <= 36.5;
+            const looksLikeLonLat = a >= 34 && a <= 36.5 && b >= 28 && b <= 34;
+            if (looksLikeLatLng) return [a, b];
+            if (looksLikeLonLat) return [b, a];
+            return [b, a];
+          })
+      ).filter(ring => ring.length >= 3);
+    }
+
+    async function loadBootstrapData() {
+      const [localitiesRaw, zonesRaw, polygonsRaw] = await Promise.all([
+        fetchJson(CONFIG.LOCALITIES_URL),
+        fetchJson(CONFIG.ZONES_URL),
+        fetchJson(CONFIG.POLYGONS_URL)
+      ]);
+
+      state.localities = Array.isArray(localitiesRaw)
+        ? localitiesRaw
+            .map(item => ({
+              ...item,
+              name: normalizeText(item?.name || ''),
+              lat: Number(item?.lat),
+              lon: Number(item?.lon),
+              countdown: Number(item?.countdown) || 60
+            }))
+            .filter(item => item.name && Number.isFinite(item.lat) && Number.isFinite(item.lon))
+        : [];
+
+      state.byName = new Map();
+      for (const locality of state.localities) {
+        state.byName.set(locality.name, locality);
+      }
+
+      state.zones = {};
+      for (const [key, value] of Object.entries(zonesRaw || {})) {
+        state.zones[normalizeText(key)] = value;
+      }
+
+      state.polygons = {};
+      for (const [key, value] of Object.entries(polygonsRaw?.localities || {})) {
+        state.polygons[normalizeText(key)] = value;
+      }
+
+      state.cells = state.localities.map(locality => {
+        const rings = state.polygons[locality.name] || buildFallbackPolygon(locality.lat, locality.lon, locality.countdown);
+        return {
+          ...locality,
+          rings,
+          leafletRings: polygonLonLatToLeaflet(rings),
+          geoJsonRings: polygonRingsToGeoJson(rings)
+        };
+      });
+    }
+
+    function polygonRingsToGeoJson(rings) {
+      const leafletRings = polygonLonLatToLeaflet(rings);
+      return leafletRings.map(ring => ring.map(([lat, lon]) => [lon, lat]));
+    }
+
+    function emptyFeatureCollection() {
+      return { type: 'FeatureCollection', features: [] };
+    }
+
+    function isMobileViewport() {
+      return window.matchMedia('(max-width: 640px)').matches;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function getViewportSize() {
+      const viewport = window.visualViewport;
+      return {
+        width: Math.round(viewport?.width || window.innerWidth || document.documentElement.clientWidth || 0),
+        height: Math.round(viewport?.height || window.innerHeight || document.documentElement.clientHeight || 0)
+      };
+    }
+
+    function getRectWithinViewport(element) {
+      if (!element?.getClientRects?.().length) {
+        return { left: 0, top: 0, width: 0, height: 0 };
+      }
+      const { width, height } = getViewportSize();
+      const rect = element.getBoundingClientRect();
+      return {
+        left: clamp(rect.left, 0, Math.max(0, width - rect.width)),
+        top: clamp(rect.top, 0, Math.max(0, height - rect.height)),
+        width: rect.width,
+        height: rect.height
+      };
+    }
+
+    function applyFloatingPosition(element, position) {
+      if (!element || !position) return;
+      const { width, height } = getViewportSize();
+      const rect = element.getBoundingClientRect();
+      const left = clamp(position.left, 0, Math.max(0, width - rect.width));
+      const top = clamp(position.top, 0, Math.max(0, height - rect.height));
+      element.style.left = `${Math.round(left)}px`;
+      element.style.top = `${Math.round(top)}px`;
+      element.style.right = 'auto';
+      element.style.bottom = 'auto';
+      element.style.transform = 'none';
+    }
+
+    function persistFloatingPosition(storageKey, element) {
+      if (!storageKey || !element) return;
+      const rect = getRectWithinViewport(element);
+      localStorage.setItem(storageKey, JSON.stringify({ left: rect.left, top: rect.top }));
+    }
+
+    function restoreFloatingPosition(element, storageKey) {
+      if (!storageKey || !element) return false;
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+        if (!Number.isFinite(saved?.left) || !Number.isFinite(saved?.top)) return false;
+        applyFloatingPosition(element, saved);
+        return true;
+      } catch (error) {
+        console.warn('Failed to restore floating position', storageKey, error);
+        return false;
+      }
+    }
+
+    function keepElementInViewport(element, storageKey) {
+      if (!element) return;
+      if (!element.getClientRects().length) return;
+      const rect = getRectWithinViewport(element);
+      applyFloatingPosition(element, rect);
+      persistFloatingPosition(storageKey, element);
+    }
+
+    function makeFloatingDraggable(element, {
+      storageKey,
+      handleSelector,
+      ignoreSelector = 'button, input, a, select, textarea, label, [role="button"]'
+    } = {}) {
+      if (!element) return;
+
+      let dragState = null;
+      let suppressClick = false;
+      const handle = handleSelector ? element.querySelector(handleSelector) : element;
+      if (!handle) return;
+
+      const finishDrag = () => {
+        if (!dragState) return;
+        element.classList.remove('dragging');
+        if (dragState.moved) {
+          persistFloatingPosition(storageKey, element);
+          suppressClick = true;
+          window.setTimeout(() => {
+            suppressClick = false;
+          }, 220);
+        }
+        dragState = null;
+      };
+
+      element.dataset.dragReady = 'true';
+      element.classList.add('floating-draggable');
+      handle.classList.add('drag-handle');
+
+      handle.addEventListener('pointerdown', event => {
+        if (event.button !== 0) return;
+        if (ignoreSelector && event.target.closest(ignoreSelector)) return;
+        const rect = getRectWithinViewport(element);
+        dragState = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          originLeft: rect.left,
+          originTop: rect.top,
+          moved: false
+        };
+        applyFloatingPosition(element, { left: rect.left, top: rect.top });
+        handle.setPointerCapture(event.pointerId);
+      });
+
+      handle.addEventListener('pointermove', event => {
+        if (!dragState || event.pointerId !== dragState.pointerId) return;
+        const dx = event.clientX - dragState.startX;
+        const dy = event.clientY - dragState.startY;
+        if (!dragState.moved && Math.hypot(dx, dy) < 6) return;
+        dragState.moved = true;
+        element.classList.add('dragging');
+        applyFloatingPosition(element, {
+          left: dragState.originLeft + dx,
+          top: dragState.originTop + dy
+        });
+      });
+
+      handle.addEventListener('pointerup', event => {
+        if (!dragState || event.pointerId !== dragState.pointerId) return;
+        try {
+          handle.releasePointerCapture(event.pointerId);
+        } catch (error) {
+        }
+        finishDrag();
+      });
+
+      handle.addEventListener('pointercancel', finishDrag);
+      handle.addEventListener('lostpointercapture', finishDrag);
+      element.addEventListener('click', event => {
+        if (!suppressClick) return;
+        event.preventDefault();
+        event.stopPropagation();
+      }, true);
+
+      restoreFloatingPosition(element, storageKey);
+    }
+
+    function initFloatingUi() {
+      if (els.homeLink) {
+        els.homeLink.textContent = 'בחזרה ל Red Alert';
+        els.homeLink.setAttribute('aria-label', 'בחזרה ל Red Alert');
+      }
+
+      const draggableItems = [
+        [els.topbar, 'map_drag_topbar', { handleSelector: '.topbar-grip', ignoreSelector: '' }],
+        [els.searchPanel, 'map_drag_search', { handleSelector: 'h2' }],
+        [els.locationPanel, 'map_drag_location', { handleSelector: 'h2' }],
+        [els.timelinePanel, 'map_drag_timeline', { handleSelector: '.timeline-top' }],
+        [els.statusCard, 'map_drag_status', { handleSelector: '.status-head' }],
+        [els.legendPanel, 'map_drag_legend', { handleSelector: '.legend-head' }],
+        [els.mobileMenuBtn, 'map_drag_menu_btn', { ignoreSelector: '' }],
+        [els.mobileStatusBtn, 'map_drag_status_btn', { ignoreSelector: '' }],
+        [els.mobileLegendBtn, 'map_drag_legend_btn', { ignoreSelector: '' }]
+      ];
+
+      draggableItems.forEach(([element, storageKey, options]) => {
+        makeFloatingDraggable(element, { storageKey, ...(options || {}) });
+      });
+
+      const keepFloatingUiInBounds = () => {
+        draggableItems.forEach(([element, storageKey]) => {
+          keepElementInViewport(element, storageKey);
+        });
+      };
+
+      window.addEventListener('resize', keepFloatingUiInBounds, { passive: true });
+      window.addEventListener('orientationchange', keepFloatingUiInBounds, { passive: true });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', keepFloatingUiInBounds, { passive: true });
+      }
+    }
+
+    function setMobileMenuOpen(isOpen) {
+      if (!els.topbar) return;
+      els.topbar.classList.toggle('open', Boolean(isOpen));
+      const backdropOpen = Boolean(isOpen) ||
+        Boolean(els.statusCard?.classList.contains('mobile-open')) ||
+        Boolean(els.legendPanel && !els.legendPanel.classList.contains('hidden') && isMobileViewport());
+      els.mobileBackdrop?.classList.toggle('open', backdropOpen);
+    }
+
+    function closeMobileMenu() {
+      setMobileMenuOpen(false);
+    }
+
+    function setStatusPanelOpen(isOpen) {
+      if (!els.statusCard) return;
+      if (isMobileViewport() && isOpen) {
+        setAlertsCollapsed(false);
+      }
+      els.statusCard.classList.toggle('mobile-open', Boolean(isOpen));
+      if (isMobileViewport() && els.statusCollapseBtn) {
+        els.statusCollapseBtn.textContent = '×';
+        els.statusCollapseBtn.setAttribute('aria-label', 'סגירת מצב נוכחי');
+      }
+      const backdropOpen = Boolean(isOpen) ||
+        Boolean(els.topbar?.classList.contains('open')) ||
+        Boolean(els.legendPanel && !els.legendPanel.classList.contains('hidden') && isMobileViewport());
+      els.mobileBackdrop?.classList.toggle('open', backdropOpen);
+    }
+
+    function closeStatusPanel() {
+      setStatusPanelOpen(false);
+    }
+
+    function setLegendPanelOpen(isOpen) {
+      if (!els.legendPanel) return;
+      if (isMobileViewport()) {
+        els.legendPanel.classList.toggle('hidden', !isOpen);
+      } else {
+        els.legendPanel.classList.remove('hidden');
+      }
+      const backdropOpen = Boolean(isOpen && isMobileViewport()) ||
+        Boolean(els.topbar?.classList.contains('open')) ||
+        Boolean(els.statusCard?.classList.contains('mobile-open'));
+      els.mobileBackdrop?.classList.toggle('open', backdropOpen);
+    }
+
+    function closeLegendPanel() {
+      if (!isMobileViewport()) {
+        setLegendPanelOpen(true);
+        return;
+      }
+      setLegendPanelOpen(false);
+    }
+
+    function resetMobilePanels() {
+      if (!isMobileViewport()) return;
+      clearMobileFloatingStyles();
+      setAlertsCollapsed(true);
+      els.searchPanel?.classList.add('hidden');
+      els.locationPanel?.classList.add('hidden');
+      els.timelinePanel?.classList.add('hidden');
+      setHistoryCollapsed(true);
+      setMobileMenuOpen(false);
+      setStatusPanelOpen(false);
+      setLegendPanelOpen(false);
+      updateOverlayButtonStates();
+    }
+
+    function setHistoryCollapsed(collapsed = true) {
+      els.timelineExtra?.classList.toggle('hidden', Boolean(collapsed));
+      if (els.historyCollapseBtn) {
+        els.historyCollapseBtn.textContent = collapsed ? 'היסטוריית התראות' : 'הסתרת היסטוריה';
+        els.historyCollapseBtn.classList.toggle('active', !collapsed);
+      }
+    }
+
+    function clearMobileFloatingStyles() {
+      const mobileFloatingElements = [
+        els.topbar,
+        els.statusCard,
+        els.searchPanel,
+        els.locationPanel,
+        els.timelinePanel,
+        els.legendPanel
+      ];
+
+      mobileFloatingElements.forEach(element => {
+        if (!element) return;
+        element.style.left = '';
+        element.style.top = '';
+        element.style.right = '';
+        element.style.bottom = '';
+        element.style.transform = '';
+      });
+    }
+
+    function syncLegendVisibility() {
+      setLegendPanelOpen(!isMobileViewport());
+    }
+
+    function applyStatusToElement(dotEl, titleEl, metaEl, kind, title, meta) {
+      if (dotEl) dotEl.className = `status-dot ${kind}`;
+      if (titleEl) titleEl.textContent = title;
+      if (metaEl) metaEl.textContent = meta;
+    }
+
+    function applyStatusSummary(kind) {
+      if (!els.mobileStatusBtn || !els.mobileStatusDot) return;
+      els.mobileStatusBtn.className = `mobile-status-btn ${kind}`;
+      els.mobileStatusDot.className = `status-dot ${kind}`;
+    }
+
+    function applyDefaultViewport(duration = 0) {
+      if (!state.map) return;
+      if (state.mapEngine === 'leaflet') {
+        state.map.flyToBounds(
+          [[CONFIG.DEFAULT_VIEW_BOUNDS[0][1], CONFIG.DEFAULT_VIEW_BOUNDS[0][0]], [CONFIG.DEFAULT_VIEW_BOUNDS[1][1], CONFIG.DEFAULT_VIEW_BOUNDS[1][0]]],
+          { padding: [36, 36], duration: duration / 1000, maxZoom: 8 }
+        );
+        return;
+      }
+      state.map.fitBounds(CONFIG.DEFAULT_VIEW_BOUNDS, { padding: 36, duration, maxZoom: 8 });
+    }
+
+    function applyHebrewLabels() {
+      if (!state.map || !state.mapLoaded || state.mapEngine !== 'vector') return;
+      const style = state.map.getStyle();
+      const layers = Array.isArray(style?.layers) ? style.layers : [];
+
+      for (const layer of layers) {
+        if (layer.type !== 'symbol') continue;
+        const layerId = String(layer.id || '').toLowerCase();
+
+        // Hide route shield/icon layers that render as blank white boxes in this demo.
+        if (/(shield|route|road-number|highway-number)/.test(layerId)) {
+          try {
+            state.map.setLayoutProperty(layer.id, 'visibility', 'none');
+          } catch (error) {
+            console.error('Failed to hide shield layer', layer.id, error);
+          }
+          continue;
+        }
+
+        const textField = layer.layout?.['text-field'];
+        if (!textField) continue;
+
+        try {
+          state.map.setLayoutProperty(layer.id, 'text-field', [
+            'coalesce',
+            ['get', 'name:he'],
+            ['get', 'name'],
+            ['get', 'name:en']
+          ]);
+        } catch (error) {
+          console.error('Failed to apply Hebrew labels for layer', layer.id, error);
+        }
+      }
+    }
+
+    function ensurePolygonLayers() {
+      if (state.mapEngine !== 'vector') return;
+      if (!state.map || !state.mapLoaded) return;
+      if (!state.map.getSource('alert-polygons')) {
+        state.map.addSource('alert-polygons', {
+          type: 'geojson',
+          data: emptyFeatureCollection()
+        });
+      }
+
+      if (!state.map.getLayer('alert-polygons-fill')) {
+        state.map.addLayer({
+          id: 'alert-polygons-fill',
+          type: 'fill',
+          source: 'alert-polygons',
+          paint: {
+            'fill-color': ['get', 'fillColor'],
+            'fill-opacity': ['get', 'fillOpacity']
+          }
+        });
+      }
+
+      if (!state.map.getLayer('alert-polygons-line')) {
+        state.map.addLayer({
+          id: 'alert-polygons-line',
+          type: 'line',
+          source: 'alert-polygons',
+          paint: {
+            'line-color': ['get', 'lineColor'],
+            'line-width': ['get', 'lineWidth']
+          }
+        });
+      }
+
+      if (!state.map.__bereadyPolygonEventsBound) {
+        state.map.on('click', 'alert-polygons-fill', event => {
+          const feature = event?.features?.[0];
+          const cityName = feature?.properties?.name;
+          if (!cityName) return;
+          openLocationPanel(cityName);
+          refreshUi();
+        });
+
+        state.map.on('mousemove', 'alert-polygons-fill', event => {
+          const feature = event?.features?.[0];
+          const cityName = feature?.properties?.name || null;
+          if (cityName === state.hoveredCity) return;
+          state.hoveredCity = cityName;
+          if (state.currentSnapshot) renderPolygons(state.currentSnapshot);
+        });
+
+        state.map.on('mouseenter', 'alert-polygons-fill', () => {
+          state.map.getCanvas().style.cursor = 'pointer';
+        });
+
+        state.map.on('mouseleave', 'alert-polygons-fill', () => {
+          state.map.getCanvas().style.cursor = '';
+          if (!state.hoveredCity) return;
+          state.hoveredCity = null;
+          if (state.currentSnapshot) renderPolygons(state.currentSnapshot);
+        });
+
+        state.map.__bereadyPolygonEventsBound = true;
+      }
+    }
+
+    function initRasterFallbackMap(apiKey, reason = '') {
+      state.mapEngine = 'leaflet';
+      state.mapLoaded = true;
+      state.map = L.map('map', { zoomControl: true, attributionControl: true }).setView([CONFIG.DEFAULT_CENTER[1], CONFIG.DEFAULT_CENTER[0]], 7);
+      state.map.setMaxBounds([[29.0, 25.5], [37.2, 37.5]]);
+      state.map.setMinZoom(5);
+      state.map.setMaxZoom(13);
+      L.tileLayer(apiKey ? `https://api.maptiler.com/maps/${CONFIG.MAPTILER_STYLE}/{z}/{x}/{y}.png?key=${apiKey}` : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        tileSize: apiKey ? 512 : 256,
+        zoomOffset: apiKey ? -1 : 0,
+        minZoom: 1,
+        crossOrigin: true,
+        attribution: apiKey ? '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>' : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+      }).addTo(state.map);
+      state.polygonLayer = L.layerGroup().addTo(state.map);
+      applyDefaultViewport(0);
+      console.warn(reason || 'MapTiler vector fallback to raster');
+    }
+
+    function initMap() {
+      const apiKey = String(CONFIG.MAPTILER_API_KEY || '').trim();
+      if (!apiKey) {
+        initRasterFallbackMap('', 'No MapTiler key configured; using OpenStreetMap.');
+        return;
+      }
+
+      if (!window.maplibregl) {
+        initRasterFallbackMap(apiKey, 'MapLibre לא נטען, לכן הדמו עבר אוטומטית ל־MapTiler raster בתוך Leaflet.');
+        return;
+      }
+
+      try {
+        maplibregl.setRTLTextPlugin(
+          'https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.2.3/mapbox-gl-rtl-text.js',
+          null,
+          true
+        );
+        state.mapEngine = 'vector';
+        state.map = new maplibregl.Map({
+          container: 'map',
+          style: `https://api.maptiler.com/maps/${CONFIG.MAPTILER_STYLE}/style.json?key=${apiKey}`,
+          center: CONFIG.DEFAULT_CENTER,
+          zoom: 7,
+          minZoom: 5,
+          maxZoom: 13,
+          maxBounds: CONFIG.ISRAEL_BOUNDS,
+          renderWorldCopies: false,
+          dragRotate: false,
+          touchPitch: false,
+          pitchWithRotate: false,
+          maxPitch: 0
+        });
+
+        state.map.addControl(new maplibregl.NavigationControl(), 'top-left');
+        state.map.on('load', () => {
+          state.mapLoaded = true;
+          applyHebrewLabels();
+          ensurePolygonLayers();
+          applyDefaultViewport(0);
+          if (state.currentSnapshot) renderPolygons(state.currentSnapshot);
+        });
+        state.map.on('error', event => {
+          console.error('MapLibre vector map error', event);
+        });
+      } catch (error) {
+        console.error('Failed to initialize MapLibre vector map', error);
+        initRasterFallbackMap(apiKey, `טעינת MapLibre vector נכשלה: ${error?.message || error}. חזרנו ל־MapTiler raster בתוך Leaflet.`);
+      }
+    }
+
+    function normalizeStatus(raw) {
+      const current = raw?.current_alert
+        ? {
+            ...raw.current_alert,
+            data: normalizeCities(raw.current_alert.data || []),
+            ts: parseTs(raw.current_alert),
+            datetime: raw.current_alert?.alertDate || raw.current_alert?.datetime || '--'
+          }
+        : null;
+      const currentKind = classifyAlert(current?.title, current?.desc);
+      const currentStillActive = current?.ts
+        ? isEventActiveAt({ kind: currentKind, ts: current.ts }, Date.now())
+        : false;
+
+      return {
+        ok: raw?.ok !== false,
+        fetchedAt: raw?.fetched_at || null,
+        currentAlert: current,
+        currentKind,
+        hasActiveAlert: Boolean(raw?.has_active_alert) && currentKind !== 'green' && currentStillActive
+      };
+    }
+
+    function normalizeHistory(raw) {
+      const items = Array.isArray(raw) ? raw : Array.isArray(raw?.history) ? raw.history : [];
+      return items
+        .map(item => {
+          const alert = item?.alert || item;
+          const data = Array.isArray(alert?.data)
+            ? alert.data
+            : String(alert?.data || '')
+                .split(',')
+                .map(x => x.trim())
+                .filter(Boolean);
+
+          const title = alert?.title || alert?.category_desc || 'התרעה';
+          const desc = alert?.desc || '';
+
+          return {
+            raw: item,
+            title,
+            desc,
+            data: normalizeCities(data),
+            ts: parseTs(item),
+            datetime: item?.datetime || alert?.alertDate || item?.alertDate || '--',
+            kind: classifyAlert(title, desc)
+          };
+        })
+        .filter(item => item.ts)
+        .sort((a, b) => a.ts - b.ts);
+    }
+
+    function shouldUseLiveStatusEvent() {
+      if (!state.status?.currentAlert) return false;
+      if (!isEventActiveAt(state.status.currentAlert, Date.now())) return false;
+      if (state.status.hasActiveAlert) return true;
+      return state.status.currentKind === 'green';
+    }
+
+    function eventDurationMs(kind) {
+      if (kind === 'green') return CONFIG.GREEN_FADE_MS;
+      if (kind === 'yellow') return CONFIG.EARLY_WARNING_MS;
+      if (kind === 'purple') return CONFIG.UAV_ALERT_MS;
+      if (kind === 'red') return CONFIG.DEFAULT_ALERT_MS;
+      return 0;
+    }
+
+    function isEventActiveAt(event, targetTs) {
+      const durationMs = eventDurationMs(event?.kind);
+      if (!durationMs) return false;
+      const ts = Number(event?.ts || 0);
+      if (!ts) return false;
+      return (targetTs - ts) <= durationMs;
+    }
+
+    function shouldOverrideEvent(existingEvent, incomingEvent) {
+      if (!existingEvent) return true;
+      if (incomingEvent.kind === 'green') return true;
+      if (existingEvent.kind === 'green') return true;
+
+      const existingPriority = KIND_PRIORITY[existingEvent.kind] || 0;
+      const incomingPriority = KIND_PRIORITY[incomingEvent.kind] || 0;
+      if (incomingPriority !== existingPriority) return incomingPriority > existingPriority;
+      return (incomingEvent.ts || 0) >= (existingEvent.ts || 0);
+    }
+
+    function applyEventToCityState(cityState, event) {
+      if (!event) return;
+
+      const eventCities = normalizeCities(event.data || []);
+
+      if (event.kind === 'green' && !eventCities.length) {
+        cityState.clear();
+        return;
+      }
+
+      for (const city of eventCities) {
+        const existing = cityState.get(city);
+        if (shouldOverrideEvent(existing, event)) {
+          cityState.set(city, event);
+        }
+      }
+    }
+
+    function buildTimelinePoints() {
+      const points = state.history.slice(-260).map(item => ({
+        ts: item.ts,
+        label: item.datetime,
+        title: item.title,
+        live: false,
+        cities: normalizeCities(item.data || [])
+      }));
+
+      if (shouldUseLiveStatusEvent()) {
+        points.push({
+          ts: state.status.currentAlert.ts || Date.now(),
+          label: 'עכשיו',
+          title: state.status.currentAlert.title || 'התרעה פעילה',
+          live: true,
+          cities: normalizeCities(state.status.currentAlert.data || [])
+        });
+      }
+
+      points.sort((a, b) => a.ts - b.ts);
+
+      const deduped = [];
+      for (const point of points) {
+        const previous = deduped[deduped.length - 1];
+        if (previous && Math.abs(previous.ts - point.ts) < 1000 && previous.title === point.title) {
+          continue;
+        }
+        deduped.push(point);
+      }
+
+      state.timelinePoints = deduped;
+      state.eventPeaks = buildEventPeaks(deduped);
+    }
+
+    function buildEventPeaks(points) {
+      if (!points.length) return [];
+      const peaks = [];
+      let clusterStart = points[0].ts;
+      let clusterPeak = points[0];
+
+      for (const point of points) {
+        if ((point.ts - clusterStart) > 120000) {
+          peaks.push(clusterPeak);
+          clusterStart = point.ts;
+          clusterPeak = point;
+          continue;
+        }
+        if (point.ts > clusterPeak.ts) clusterPeak = point;
+      }
+
+      peaks.push(clusterPeak);
+      return peaks;
+    }
+
+    function dominantFromCityStates(cityState) {
+      let dominant = null;
+      for (const snapshot of cityState.values()) {
+        if (!dominant) {
+          dominant = snapshot;
+          continue;
+        }
+        const dominantPriority = KIND_PRIORITY[dominant.kind] || 0;
+        const snapshotPriority = KIND_PRIORITY[snapshot.kind] || 0;
+        if (snapshotPriority > dominantPriority || (snapshotPriority === dominantPriority && snapshot.ts > dominant.ts)) {
+          dominant = snapshot;
+        }
+      }
+      return dominant;
+    }
+
+    function reconstructStateAt(targetTs) {
+      const cityState = new Map();
+      let lastRelevantTs = 0;
+
+      for (const item of state.history) {
+        if (item.ts > targetTs) break;
+        if (!isEventActiveAt(item, targetTs)) continue;
+
+        if (item.kind !== 'green') {
+          if (lastRelevantTs && (item.ts - lastRelevantTs) > CONFIG.SESSION_GAP_MS) {
+            cityState.clear();
+          }
+          lastRelevantTs = item.ts;
+        }
+
+        applyEventToCityState(cityState, item);
+      }
+
+      if (
+        state.displayMode === 'live' &&
+        shouldUseLiveStatusEvent() &&
+        state.status.currentKind !== 'gray'
+      ) {
+        const liveEvent = {
+            kind: state.status.currentKind,
+            title: state.status.currentAlert.title || 'התרעה פעילה',
+            desc: state.status.currentAlert.desc || '',
+            ts: state.status.currentAlert.ts || Date.now(),
+            datetime: 'עכשיו',
+            data: normalizeCities(state.status.currentAlert.data || [])
+          };
+        applyEventToCityState(cityState, liveEvent);
+      }
+
+      const cities = Array.from(cityState.keys());
+      const dominant = dominantFromCityStates(cityState);
+
+      return {
+        cityState,
+        cities,
+        dominant,
+        focusKey: cities.sort().join('|')
+      };
+    }
+
+    function currentReconstruction() {
+      if (state.displayMode === 'live') {
+        return reconstructStateAt(Date.now());
+      }
+      const point = state.timelinePoints[state.selectedIndex];
+      return reconstructStateAt(point ? point.ts : Date.now());
+    }
+
+    function recentEventsForCity(cityName) {
+      return state.history
+        .filter(item => item.data.includes(cityName))
+        .sort((a, b) => b.ts - a.ts)
+        .slice(0, 40);
+    }
+
+    function selectedTimelinePoint() {
+      if (!state.timelinePoints.length) return null;
+      if (state.displayMode === 'live') return state.timelinePoints[state.timelinePoints.length - 1] || null;
+      return state.timelinePoints[state.selectedIndex] || state.timelinePoints[state.timelinePoints.length - 1] || null;
+    }
+
+    function alertAreasForCities(cities = []) {
+      const labels = [];
+      const seen = new Set();
+
+      for (const cityName of cities) {
+        const meta = state.zones[cityName];
+        const label = normalizeText(meta?.zone || meta?.region || '');
+        if (!label || seen.has(label)) continue;
+        seen.add(label);
+        labels.push(label);
+      }
+
+      return labels;
+    }
+
+    function compactAreaLabel(cities = []) {
+      const areas = alertAreasForCities(cities);
+      if (!areas.length) return '-';
+      if (areas.length === 1) return areas[0];
+      if (areas.length === 2) return `${areas[0]} • ${areas[1]}`;
+      return `${areas[0]} +${areas.length - 1}`;
+    }
+
+    function areaLabelForTimelineSelection() {
+      const activePoint = selectedTimelinePoint();
+      if (!activePoint) return compactAreaLabel(state.currentSnapshot?.cities || []);
+      if (activePoint.cities?.length) return compactAreaLabel(activePoint.cities);
+
+      const points = state.timelinePoints;
+      const activeIndex = state.displayMode === 'live'
+        ? Math.max(0, points.length - 1)
+        : Math.max(0, state.selectedIndex);
+
+      for (let index = activeIndex - 1; index >= 0; index -= 1) {
+        const fallbackCities = points[index]?.cities || [];
+        if (fallbackCities.length) return compactAreaLabel(fallbackCities);
+      }
+
+      return compactAreaLabel(state.currentSnapshot?.cities || []);
+    }
+
+    function setAlertsCollapsed(collapsed = true) {
+      if (!els.statusCard) return;
+      els.statusCard.classList.toggle('hidden', Boolean(collapsed));
+      if (els.statusCollapseBtn) {
+        els.statusCollapseBtn.textContent = collapsed ? '+' : '−';
+        els.statusCollapseBtn.setAttribute('aria-label', collapsed ? 'פתיחת התראות' : 'סגירת התראות');
+      }
+    }
+
+    function markProgrammaticMapMove(durationMs = 900) {
+      state.ignoreMapMoveUntil = Date.now() + durationMs;
+    }
+
+    function jumpToTimelinePoint(targetTs, options = {}) {
+      const points = state.timelinePoints;
+      if (!points.length) return;
+
+      let bestIndex = points.length - 1;
+      let bestDistance = Infinity;
+
+      for (let index = 0; index < points.length; index += 1) {
+        const distance = Math.abs((points[index]?.ts || 0) - targetTs);
+        if (distance <= bestDistance) {
+          bestDistance = distance;
+          bestIndex = index;
+        }
+      }
+
+      state.displayMode = options.live ? 'live' : 'timeline';
+      state.selectedIndex = bestIndex;
+      state.userHasMovedMap = false;
+      state.lastFocusKey = '';
+      if (els.timelinePanel && options.openPanel !== false) {
+        els.timelinePanel.classList.remove('hidden');
+      }
+      refreshUi();
+      if (isMobileViewport()) setAlertsCollapsed(true);
+      closeStatusPanel();
+      if (isMobileViewport()) closeMobileMenu();
+    }
+
+    function renderHistoryList() {
+      if (!els.historyList) return;
+      const points = state.timelinePoints.slice(-18).reverse();
+      const currentPoint = selectedTimelinePoint();
+      if (!points.length) {
+        els.historyList.innerHTML = '<div class="history-empty">אין עדיין היסטוריה זמינה להצגה. ברגע שייטענו אירועים, הם יופיעו כאן לפי סדר זמנים.</div>';
+        return;
+      }
+
+      els.historyList.innerHTML = points.map(point => {
+        const kind = classifyAlert(point.title, '');
+        const isActive = currentPoint && currentPoint.ts === point.ts;
+        return `
+          <button class="history-item${isActive ? ' active' : ''}" type="button" data-ts="${point.ts}">
+            <div class="history-item-top">
+              <strong>${escapeHtml(point.label)}</strong>
+              <span class="kind-badge ${kind}">${escapeHtml(labelForKind(kind))}</span>
+            </div>
+            <strong>${escapeHtml(point.title)}</strong>
+          </button>
+        `;
+      }).join('');
+
+      els.historyList.querySelectorAll('[data-ts]').forEach(button => {
+        button.addEventListener('click', () => {
+          const ts = Number(button.getAttribute('data-ts') || 0);
+          if (!ts) return;
+          const point = state.timelinePoints.find(item => item.ts === ts);
+          jumpToTimelinePoint(ts, { live: Boolean(point?.live), openPanel: true });
+        });
+      });
+    }
+
+    function updateSoundUi() {
+      if (!els.soundBtn) return;
+      const isMobile = isMobileViewport();
+      els.soundBtn.innerHTML = state.audioEnabled
+        ? `<span class="btn-icon" aria-hidden="true">♪</span><span class="btn-copy"><span>${isMobile ? 'שמע' : 'התראה קולית'}</span><strong>${isMobile ? 'סאונד פעיל' : 'סאונד פעיל'}</strong></span>`
+        : `<span class="btn-icon" aria-hidden="true">♪</span><span class="btn-copy"><span>${isMobile ? 'שמע' : 'התראה קולית'}</span><strong>${isMobile ? 'סאונד כבוי' : 'סאונד כבוי'}</strong></span>`;
+      els.soundBtn.classList.toggle('active', state.audioEnabled);
+    }
+
+    function updateAutoZoomUi() {
+      if (!els.autoZoomBtn) return;
+      const isMobile = isMobileViewport();
+      els.autoZoomBtn.innerHTML = state.autoZoomEnabled
+        ? `<span class="btn-icon" aria-hidden="true">◎</span><span class="btn-copy"><span>${isMobile ? 'מיקוד' : 'מיקוד מפה'}</span><strong>${isMobile ? 'זום אוטומטי' : 'זום אוטומטי'}</strong></span>`
+        : `<span class="btn-icon" aria-hidden="true">◎</span><span class="btn-copy"><span>${isMobile ? 'מיקוד' : 'מיקוד מפה'}</span><strong>${isMobile ? 'זום ידני' : 'זום ידני'}</strong></span>`;
+      els.autoZoomBtn.classList.toggle('live-active', state.autoZoomEnabled);
+      els.autoZoomBtn.classList.toggle('warn', !state.autoZoomEnabled);
+    }
+
+    function updateLiveUi() {
+      const isLive = state.displayMode === 'live';
+      els.liveBtn.classList.toggle('live-active', isLive);
+      els.liveBtn.setAttribute('aria-label', isLive ? 'מצב חי פעיל' : 'חזרה למצב חי');
+      els.liveBtn.setAttribute('title', isLive ? 'מצב חי פעיל' : 'חזרה למצב חי');
+      els.liveBtn.innerHTML = isLive
+        ? '<span class="btn-icon" aria-hidden="true">●</span><span class="btn-copy"><span>זמן אמת</span><strong>Live פעיל</strong></span>'
+        : '<span class="btn-icon" aria-hidden="true">●</span><span class="btn-copy"><span>זמן אמת</span><strong>חזרה ל-Live</strong></span>';
+    }
+
+    function updateOverlayButtonStates() {
+      if (els.timelineToggleBtn) {
+        els.timelineToggleBtn.classList.toggle('active', !els.timelinePanel.classList.contains('hidden'));
+      }
+      if (els.searchBtn) {
+        els.searchBtn.classList.toggle('active', !els.searchPanel.classList.contains('hidden'));
+      }
+    }
+
+    function renderSearchResults(query = '') {
+      const normalizedQuery = normalizeText(query).toLowerCase();
+      const items = state.localities
+        .filter(locality => !normalizedQuery || locality.name.toLowerCase().includes(normalizedQuery))
+        .slice(0, 24);
+
+      if (!items.length) {
+        els.searchResults.innerHTML = '<div class="event-card"><strong>לא נמצאו תוצאות</strong><span>נסי לחפש בשם יישוב אחר.</span></div>';
+        return;
+      }
+
+      els.searchResults.innerHTML = items.map(locality => {
+        const meta = state.zones[locality.name];
+        const eventCount = recentEventsForCity(locality.name).length;
+        return `
+          <button class="search-item" type="button" data-city="${escapeHtml(locality.name)}">
+            <strong>${escapeHtml(locality.name)}</strong>
+            <span>${escapeHtml(meta?.zone || meta?.region || 'ללא אזור')} • ${eventCount} אירועים אחרונים</span>
+          </button>
+        `;
+      }).join('');
+
+      els.searchResults.querySelectorAll('[data-city]').forEach(button => {
+        button.addEventListener('click', () => {
+          const cityName = button.getAttribute('data-city') || '';
+          if (!cityName) return;
+          els.searchPanel.classList.add('hidden');
+          updateOverlayButtonStates();
+          if (isMobileViewport()) setAlertsCollapsed(true);
+          openLocationPanel(cityName);
+          const locality = state.byName.get(cityName);
+          if (locality) {
+            if (state.mapEngine === 'leaflet') {
+              state.map.flyTo([locality.lat, locality.lon], Math.max(state.map.getZoom(), 10), { duration: 0.45 });
+            } else {
+              state.map.flyTo({
+                center: [locality.lon, locality.lat],
+                zoom: Math.max(state.map.getZoom(), 10),
+                duration: 450
+              });
+            }
+          }
+          refreshUi();
+        });
+      });
+    }
+
+    function playAlertSound() {
+      if (!state.audioEnabled) return;
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(740, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(1040, audioCtx.currentTime + 0.18);
+        gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.08, audioCtx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.45);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.45);
+      } catch (error) {
+        console.error('Failed to play sound', error);
+      }
+    }
+
+    function maybePlayNewAlertSound() {
+      if (!state.status?.hasActiveAlert) return;
+      if (!state.status?.currentAlert || state.status.currentKind === 'green' || state.status.currentKind === 'gray') return;
+      const key = JSON.stringify({
+        title: state.status.currentAlert.title || '',
+        cities: normalizeCities(state.status.currentAlert.data || []).sort()
+      });
+      if (state.lastSoundKey && state.lastSoundKey !== key) {
+        playAlertSound();
+      }
+      state.lastSoundKey = key;
+    }
+
+    function updateStatusCard(snapshot) {
+      let kind = 'gray';
+      let title = 'התראות';
+      let meta = 'לא נמצאה התרעה פעילה, וכל האירועים ההיסטוריים כבר יצאו מחלון התצוגה הפעיל.';
+      let areaLabel = '-';
+
+      if (state.error) {
+        kind = 'gray';
+        title = 'שגיאה';
+        meta = state.error;
+      } else if (!snapshot.dominant) {
+        if (state.displayMode === 'live' && state.status?.currentAlert && state.status.currentKind === 'green') {
+          const cities = normalizeCities(state.status.currentAlert.data || []);
+          kind = 'green';
+          title = 'הסתיים';
+          meta = `${state.status.currentAlert.title || 'האירוע הסתיים'} • ${cities.length} יישובים • עכשיו`;
+          areaLabel = compactAreaLabel(cities);
+        }
+      } else {
+        const dominant = snapshot.dominant;
+        const liveText = state.displayMode === 'live' ? 'מצב חי' : 'שחזור היסטורי';
+        kind = dominant.kind;
+        title = state.displayMode === 'live' ? labelForKind(dominant.kind) : `היסטוריה • ${labelForKind(dominant.kind)}`;
+        meta = `${dominant.title} • ${snapshot.cities.length} יישובים • ${dominant.datetime}`;
+        areaLabel = compactAreaLabel(snapshot.cities);
+      }
+
+      applyStatusToElement(els.statusDot, els.statusTitle, els.statusMeta, kind, title, meta);
+      applyStatusToElement(els.menuStatusDot, els.menuStatusTitle, els.menuStatusMeta, kind, title, meta);
+      if (els.statusAreaLabel) {
+        els.statusAreaLabel.textContent = areaLabel;
+      }
+      if (els.statusAreaRow) {
+        els.statusAreaRow.style.display = snapshot.cities.length ? 'flex' : 'none';
+      }
+      applyStatusSummary(kind);
+    }
+
+    function updateTimelineUi() {
+      const points = state.timelinePoints;
+      els.timelineSummary.textContent = `${points.length} נקודות זמן • ${state.eventPeaks.length} אירועים`;
+      if (els.timelineAreaLabel) {
+        els.timelineAreaLabel.textContent = areaLabelForTimelineSelection();
+      }
+
+      if (!points.length) {
+        els.timelineRange.max = 0;
+        els.timelineRange.value = 0;
+        els.timelineLabel.textContent = 'אין אירועים זמינים';
+        renderHistoryList();
+        return;
+      }
+
+      els.timelineRange.max = String(points.length - 1);
+      if (state.displayMode === 'live') {
+        els.timelineRange.value = String(points.length - 1);
+        els.timelineLabel.textContent = 'מצב חי';
+      } else {
+        const point = points[state.selectedIndex] || points[points.length - 1];
+        els.timelineRange.value = String(state.selectedIndex);
+        els.timelineLabel.textContent = `${point.label} • ${point.title}`;
+      }
+
+      renderTimelineTrack(points);
+      renderHistoryList();
+    }
+
+    function renderTimelineTrack(points) {
+      els.timelineTrack.innerHTML = '';
+      if (!points.length) return;
+      const firstTs = points[0].ts;
+      const lastTs = points[points.length - 1].ts;
+      const span = Math.max(1, lastTs - firstTs);
+      const widthPct = Math.max(0.8, 100 / Math.max(points.length, 120));
+
+      points.forEach(point => {
+        const marker = document.createElement('span');
+        marker.style.left = `${((point.ts - firstTs) / span) * 100}%`;
+        marker.style.width = `${widthPct}%`;
+        marker.style.background = colorForKind(classifyAlert(point.title, ''));
+        marker.title = `${point.label} • ${point.title}`;
+        els.timelineTrack.appendChild(marker);
+      });
+    }
+
+    function openLocationPanel(cityName) {
+      state.selectedCity = cityName;
+      const meta = state.zones[cityName];
+      const items = recentEventsForCity(cityName);
+      const currentPoint = selectedTimelinePoint();
+      const areaLabel = compactAreaLabel([cityName]);
+      if (isMobileViewport()) setAlertsCollapsed(true);
+      if (isMobileViewport()) {
+        closeMobileMenu();
+        closeStatusPanel();
+        closeLegendPanel();
+        els.searchPanel?.classList.add('hidden');
+        els.timelinePanel?.classList.add('hidden');
+        updateOverlayButtonStates();
+      }
+
+      els.panelTitle.textContent = cityName;
+      els.panelMeta.textContent = meta
+        ? `${meta.region || 'ללא אזור'} • ${meta.zone || 'ללא תת-אזור'} • ${items.length} אירועים אחרונים`
+        : `${items.length} אירועים אחרונים`;
+      if (els.panelAreaLabel) {
+        els.panelAreaLabel.textContent = areaLabel;
+      }
+      if (els.panelSectionMeta) {
+        els.panelSectionMeta.textContent = `${items.length}`;
+      }
+
+      if (!items.length) {
+        els.panelEvents.innerHTML = '<div class="event-card"><strong>אין היסטוריה ליישוב הזה</strong><span>היישוב לא הופיע בחלון ההיסטוריה שנטען כרגע מה־API.</span></div>';
+      } else {
+        els.panelEvents.innerHTML = items.map(item => `
+          <button class="event-card${currentPoint && currentPoint.ts === item.ts ? ' active' : ''}" type="button" data-event-ts="${item.ts}">
+            <div class="event-card-top">
+              <strong>${escapeHtml(item.datetime)}</strong>
+              <span class="kind-badge ${item.kind}">${escapeHtml(labelForKind(item.kind))}</span>
+            </div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.desc || 'ללא תיאור נוסף')}</span>
+          </button>
+        `).join('');
+
+        els.panelEvents.querySelectorAll('[data-event-ts]').forEach(button => {
+          button.addEventListener('click', () => {
+            const ts = Number(button.getAttribute('data-event-ts') || 0);
+            if (!ts) return;
+            jumpToTimelinePoint(ts, { live: false, openPanel: true });
+            openLocationPanel(cityName);
+          });
+        });
+      }
+
+      els.locationPanel.classList.remove('hidden');
+    }
+
+    function closeLocationPanel() {
+      state.selectedCity = null;
+      els.locationPanel.classList.add('hidden');
+      refreshUi();
+    }
+
+    function boundsFromCells(cells) {
+      if (!cells.length) return null;
+      let minLat = Infinity;
+      let maxLat = -Infinity;
+      let minLon = Infinity;
+      let maxLon = -Infinity;
+
+      for (const cell of cells) {
+        for (const ring of cell.geoJsonRings || []) {
+          for (const [lon, lat] of ring || []) {
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+            minLat = Math.min(minLat, lat);
+            maxLat = Math.max(maxLat, lat);
+            minLon = Math.min(minLon, lon);
+            maxLon = Math.max(maxLon, lon);
+          }
+        }
+      }
+
+      if (![minLat, maxLat, minLon, maxLon].every(Number.isFinite)) return null;
+      return [[minLon, minLat], [maxLon, maxLat]];
+    }
+
+    function activeBoundsForSnapshot(snapshot) {
+      return boundsFromCells(state.cells.filter(cell => snapshot.cityState.has(cell.name)));
+    }
+
+    function fitMapToSnapshot(snapshot) {
+      if (!snapshot.cities.length) return;
+      if (!state.autoZoomEnabled) return;
+      if (state.displayMode === 'live' && state.userHasMovedMap) return;
+      if (state.displayMode === 'live' && snapshot.focusKey === state.lastFocusKey) return;
+      state.lastFocusKey = snapshot.focusKey;
+
+      if (state.mapEngine === 'leaflet') {
+        const bounds = state.cells
+          .filter(cell => snapshot.cityState.has(cell.name))
+          .map(cell => L.polygon(cell.leafletRings).getBounds())
+          .filter(Boolean);
+        if (bounds.length) {
+          let merged = bounds[0];
+          for (let index = 1; index < bounds.length; index += 1) merged = merged.extend(bounds[index]);
+          markProgrammaticMapMove(1000);
+          state.map.flyToBounds(merged, { padding: [56, 56], duration: 0.55, maxZoom: 10 });
+          return;
+        }
+
+        const latLngs = snapshot.cities
+          .map(name => state.byName.get(name))
+          .filter(Boolean)
+          .map(item => [item.lat, item.lon]);
+
+        if (latLngs.length === 1) {
+          markProgrammaticMapMove(900);
+          state.map.flyTo(latLngs[0], Math.max(state.map.getZoom(), 10), { duration: 0.45 });
+        } else if (latLngs.length > 1) {
+          markProgrammaticMapMove(900);
+          state.map.flyToBounds(latLngs, { padding: [44, 44], duration: 0.45, maxZoom: 10 });
+        }
+        return;
+      }
+
+      const bounds = activeBoundsForSnapshot(snapshot);
+      if (bounds) {
+        markProgrammaticMapMove(900);
+        state.map.fitBounds(bounds, { padding: 56, duration: 450, maxZoom: 10 });
+        return;
+      }
+
+      const coords = snapshot.cities
+        .map(name => state.byName.get(name))
+        .filter(Boolean)
+        .map(item => [item.lon, item.lat]);
+
+      if (coords.length === 1) {
+        markProgrammaticMapMove(900);
+        state.map.flyTo({ center: coords[0], zoom: Math.max(state.map.getZoom(), 10), duration: 450 });
+      } else if (coords.length > 1) {
+        let minLon = Infinity;
+        let minLat = Infinity;
+        let maxLon = -Infinity;
+        let maxLat = -Infinity;
+        for (const [lon, lat] of coords) {
+          minLon = Math.min(minLon, lon);
+          maxLon = Math.max(maxLon, lon);
+          minLat = Math.min(minLat, lat);
+          maxLat = Math.max(maxLat, lat);
+        }
+        markProgrammaticMapMove(900);
+        state.map.fitBounds([[minLon, minLat], [maxLon, maxLat]], { padding: 44, duration: 450, maxZoom: 10 });
+      }
+    }
+
+    function fitCurrentView(force = false) {
+      const snapshot = state.currentSnapshot || currentReconstruction();
+      if (!snapshot.cities.length) {
+        applyDefaultViewport(450);
+        return;
+      }
+      if (force) {
+        state.userHasMovedMap = false;
+        state.lastFocusKey = '';
+      }
+      fitMapToSnapshot(snapshot);
+    }
+
+    function renderPolygons(snapshot) {
+      if (state.mapEngine === 'leaflet') {
+        if (!state.polygonLayer) return;
+        state.polygonLayer.clearLayers();
+
+        for (const cell of state.cells) {
+          const event = snapshot.cityState.get(cell.name);
+          const kind = event?.kind || 'gray';
+          const fillColor = event ? colorForKind(kind) : '#7c8aa81f';
+          const borderColor = event ? colorForKind(kind) : 'transparent';
+          const fillOpacity = event
+            ? (kind === 'yellow' ? 0.34 : kind === 'purple' ? 0.48 : 0.56)
+            : 0.12;
+          const weight = event ? 0.9 : 0;
+
+          const polygon = L.polygon(cell.leafletRings, {
+            color: borderColor,
+            fillColor,
+            fillOpacity,
+            weight
+          });
+
+          polygon.options.__baseStyle = {
+            color: borderColor,
+            fillColor,
+            fillOpacity,
+            weight
+          };
+
+          polygon.on('click', () => openLocationPanel(cell.name));
+          polygon.on('mouseover', () => {
+            polygon.setStyle({
+              color: '#4ea1ff',
+              weight: 2,
+              fillOpacity: event ? Math.min(fillOpacity + 0.1, 0.76) : 0.22
+            });
+          });
+          polygon.on('mouseout', () => {
+            const isSelected = state.selectedCity === cell.name;
+            if (isSelected) {
+              polygon.setStyle({
+                color: '#4ea1ff',
+                weight: 2.2,
+                fillOpacity: Math.min(fillOpacity + 0.12, 0.8)
+              });
+              return;
+            }
+            polygon.setStyle(polygon.options.__baseStyle);
+          });
+          polygon.bindTooltip(cell.name, { direction: 'top', opacity: 0.92, sticky: true });
+          polygon.addTo(state.polygonLayer);
+
+          if (state.selectedCity === cell.name) {
+            polygon.setStyle({
+              color: '#4ea1ff',
+              weight: 2.2,
+              fillOpacity: Math.min(fillOpacity + 0.12, 0.8)
+            });
+          }
+        }
+        fitMapToSnapshot(snapshot);
+        return;
+      }
+
+      if (!state.mapLoaded) return;
+      ensurePolygonLayers();
+
+      const features = [];
+      for (const cell of state.cells) {
+        const event = snapshot.cityState.get(cell.name);
+        const isSelected = state.selectedCity === cell.name;
+        const isHovered = state.hoveredCity === cell.name;
+        const kind = event?.kind || 'gray';
+        const baseFillOpacity = event
+          ? (kind === 'yellow' ? 0.34 : kind === 'purple' ? 0.48 : 0.56)
+          : 0.03;
+        const lineColor = isSelected || isHovered
+          ? '#4ea1ff'
+          : (event ? colorForKind(kind) : 'rgba(255,255,255,0.04)');
+        const lineWidth = isSelected
+          ? 2.2
+          : isHovered
+            ? 2
+            : (event ? 0.9 : 0.4);
+        const fillOpacity = isSelected
+          ? Math.min(baseFillOpacity + 0.12, 0.8)
+          : isHovered
+            ? Math.max(baseFillOpacity, 0.12)
+            : baseFillOpacity;
+
+        features.push({
+          type: 'Feature',
+          properties: {
+            name: cell.name,
+            kind,
+            fillColor: event ? colorForKind(kind) : '#7c8aa81f',
+            fillOpacity,
+            lineColor,
+            lineWidth
+          },
+          geometry: {
+            type: 'Polygon',
+            coordinates: cell.geoJsonRings
+          }
+        });
+      }
+
+      state.map.getSource('alert-polygons').setData({
+        type: 'FeatureCollection',
+        features
+      });
+      fitMapToSnapshot(snapshot);
+    }
+
+    function refreshUi() {
+      if (state.displayMode === 'live' && state.timelinePoints.length) {
+        state.selectedIndex = Math.max(0, state.timelinePoints.length - 1);
+      }
+      const snapshot = currentReconstruction();
+      state.currentSnapshot = snapshot;
+      updateLiveUi();
+      updateOverlayButtonStates();
+      updateTimelineUi();
+      updateStatusCard(snapshot);
+      renderPolygons(snapshot);
+      if (state.selectedCity) {
+        openLocationPanel(state.selectedCity);
+      }
+    }
+
+    async function refreshData() {
+      try {
+        const [statusRaw, historyRaw] = await Promise.all([
+          fetchJson(CONFIG.STATUS_URL),
+          fetchJson(CONFIG.HISTORY_URL)
+        ]);
+
+        state.status = normalizeStatus(statusRaw);
+        state.history = normalizeHistory(historyRaw);
+        buildTimelinePoints();
+        state.error = null;
+        maybePlayNewAlertSound();
+        refreshUi();
+      } catch (error) {
+        state.error = error.message || String(error);
+        refreshUi();
+      }
+    }
+
+    function wireEvents() {
+      els.closePanelBtn.addEventListener('click', closeLocationPanel);
+
+      els.mobileMenuBtn?.addEventListener('click', () => {
+        const isOpen = !els.topbar?.classList.contains('open');
+        clearMobileFloatingStyles();
+        closeStatusPanel();
+        closeLegendPanel();
+        els.searchPanel?.classList.add('hidden');
+        els.locationPanel?.classList.add('hidden');
+        els.timelinePanel?.classList.add('hidden');
+        updateOverlayButtonStates();
+        setMobileMenuOpen(isOpen);
+      });
+
+      els.mobileStatusBtn?.addEventListener('click', () => {
+        const isOpen = !els.statusCard?.classList.contains('mobile-open');
+        clearMobileFloatingStyles();
+        closeMobileMenu();
+        closeLegendPanel();
+        els.searchPanel?.classList.add('hidden');
+        els.locationPanel?.classList.add('hidden');
+        els.timelinePanel?.classList.add('hidden');
+        updateOverlayButtonStates();
+        setStatusPanelOpen(isOpen);
+      });
+
+      els.mobileLegendBtn?.addEventListener('click', () => {
+        const isOpen = els.legendPanel?.classList.contains('hidden');
+        clearMobileFloatingStyles();
+        closeMobileMenu();
+        closeStatusPanel();
+        els.searchPanel?.classList.add('hidden');
+        els.locationPanel?.classList.add('hidden');
+        els.timelinePanel?.classList.add('hidden');
+        updateOverlayButtonStates();
+        setLegendPanelOpen(isOpen);
+      });
+
+      els.mobileBackdrop?.addEventListener('click', () => {
+        resetMobilePanels();
+      });
+
+      els.timelineToggleBtn.addEventListener('click', () => {
+        if (isMobileViewport()) {
+          closeMobileMenu();
+          closeStatusPanel();
+          closeLegendPanel();
+          els.searchPanel?.classList.add('hidden');
+          els.locationPanel?.classList.add('hidden');
+        }
+        els.timelinePanel.classList.toggle('hidden');
+        if (isMobileViewport()) setAlertsCollapsed(true);
+        updateOverlayButtonStates();
+      });
+
+      els.historyCollapseBtn?.addEventListener('click', () => {
+        const collapsed = !els.timelineExtra?.classList.contains('hidden');
+        setHistoryCollapsed(collapsed);
+      });
+
+      els.timelineCloseBtn?.addEventListener('click', () => {
+        els.timelinePanel.classList.add('hidden');
+        updateOverlayButtonStates();
+      });
+
+      els.legendCloseBtn?.addEventListener('click', () => {
+        closeLegendPanel();
+      });
+
+      els.statusCollapseBtn.addEventListener('click', () => {
+        if (isMobileViewport()) {
+          closeStatusPanel();
+          return;
+        }
+        const collapsed = !els.statusCard?.classList.contains('hidden');
+        setAlertsCollapsed(collapsed);
+      });
+
+      if (els.soundBtn) {
+        els.soundBtn.addEventListener('click', () => {
+          state.audioEnabled = !state.audioEnabled;
+          localStorage.setItem(SOUND_KEY, state.audioEnabled ? '1' : '0');
+          updateSoundUi();
+        });
+      }
+
+      els.liveBtn.addEventListener('click', () => {
+        state.displayMode = 'live';
+        state.selectedIndex = Math.max(0, state.timelinePoints.length - 1);
+        state.lastFocusKey = '';
+        state.userHasMovedMap = false;
+        refreshUi();
+        if (isMobileViewport()) closeMobileMenu();
+        closeStatusPanel();
+      });
+
+      els.autoZoomBtn.addEventListener('click', () => {
+        state.autoZoomEnabled = !state.autoZoomEnabled;
+        localStorage.setItem('beready_map_auto_zoom', state.autoZoomEnabled ? '1' : '0');
+        updateAutoZoomUi();
+        if (state.autoZoomEnabled) {
+          fitCurrentView(true);
+        }
+        if (isMobileViewport()) closeMobileMenu();
+        closeStatusPanel();
+      });
+
+      els.searchBtn.addEventListener('click', () => {
+        const hidden = els.searchPanel.classList.toggle('hidden');
+        updateOverlayButtonStates();
+        if (!hidden) {
+          if (isMobileViewport()) {
+            closeMobileMenu();
+            closeStatusPanel();
+            closeLegendPanel();
+            els.locationPanel?.classList.add('hidden');
+            els.timelinePanel?.classList.add('hidden');
+          }
+          renderSearchResults(els.searchInput.value || '');
+          els.searchInput.focus();
+        }
+        if (isMobileViewport() && hidden) {
+          closeMobileMenu();
+          closeStatusPanel();
+        }
+        closeStatusPanel();
+      });
+
+      els.searchInput.addEventListener('input', () => {
+        renderSearchResults(els.searchInput.value || '');
+      });
+
+      els.timelineRange.addEventListener('input', () => {
+        state.displayMode = 'timeline';
+        state.selectedIndex = Number(els.timelineRange.value || 0);
+        state.userHasMovedMap = false;
+        if (isMobileViewport()) setAlertsCollapsed(true);
+        refreshUi();
+      });
+
+      els.prevBtn.addEventListener('click', () => {
+        const max = Math.max(0, state.timelinePoints.length - 1);
+        const baseIndex = state.displayMode === 'live' ? max : state.selectedIndex;
+        state.displayMode = 'timeline';
+        state.selectedIndex = Math.max(0, baseIndex - 1);
+        state.userHasMovedMap = false;
+        if (isMobileViewport()) setAlertsCollapsed(true);
+        refreshUi();
+      });
+
+      els.nextBtn.addEventListener('click', () => {
+        const max = Math.max(0, state.timelinePoints.length - 1);
+        const baseIndex = state.displayMode === 'live' ? max : state.selectedIndex;
+        const nextIndex = Math.min(max, baseIndex + 1);
+        if (nextIndex >= max) {
+          state.displayMode = 'live';
+          state.selectedIndex = max;
+        } else {
+          state.displayMode = 'timeline';
+          state.selectedIndex = nextIndex;
+        }
+        state.userHasMovedMap = false;
+        if (isMobileViewport()) setAlertsCollapsed(true);
+        refreshUi();
+      });
+
+      state.map.on('movestart', () => {
+        if (Date.now() < state.ignoreMapMoveUntil) return;
+        state.userHasMovedMap = true;
+        if (isMobileViewport()) closeMobileMenu();
+      });
+
+      const syncMapSize = () => {
+        if (!state.map) return;
+        window.requestAnimationFrame(() => {
+          if (state.mapEngine === 'leaflet') state.map.invalidateSize();
+          else state.map.resize();
+        });
+      };
+
+      window.addEventListener('resize', syncMapSize, { passive: true });
+      window.addEventListener('orientationchange', syncMapSize, { passive: true });
+      window.addEventListener('resize', syncLegendVisibility, { passive: true });
+      window.addEventListener('orientationchange', syncLegendVisibility, { passive: true });
+
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', syncMapSize, { passive: true });
+        window.visualViewport.addEventListener('resize', syncLegendVisibility, { passive: true });
+      }
+    }
+
+    async function start() {
+      initMap();
+      initFloatingUi();
+      wireEvents();
+      syncLegendVisibility();
+      updateSoundUi();
+      updateAutoZoomUi();
+      setHistoryCollapsed(true);
+      if (!isMobileViewport()) {
+        els.timelinePanel?.classList.remove('hidden');
+      } else {
+        resetMobilePanels();
+      }
+      await loadBootstrapData();
+      renderSearchResults('');
+      await refreshData();
+      setInterval(refreshData, CONFIG.POLL_MS);
+    }
+
+    start().catch(error => {
+      state.error = error.message || String(error);
+      refreshUi();
+      console.error(error);
+    });
+  </script>
+</body>
+</html>
+
+
+
+

@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BeReady - על המערכת</title>
+  <meta name="description" content="BeReady היא מערכת עזר אישית למודעות מוקדמת על פעילות מצפון: כטב\"מים, שיגורים ואזעקות מלבנון, עם דגש על חיפה והסביבה." />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:locale" content="he_IL" />
+  <meta property="og:title" content="BeReady - על המערכת" />
+  <meta property="og:description" content="הסבר על מערכת BeReady, רמות המצב שלה, ומה כל רמה אומרת בפועל עבור חיפה והסביבה." />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <style>
+    :root {
+      --bg: #0b0911;
+      --panel: #15111f;
+      --panel-2: #1d172b;
+      --text: #f6f2ff;
+      --muted: #c7bfd7;
+      --line: rgba(255,255,255,.09);
+      --accent: #69c5ff;
+      --accent-2: #2fd189;
+      --warn: #ffbf47;
+      --danger: #ff5c73;
+      --shadow: 0 18px 50px rgba(0,0,0,.3);
+      --radius: 20px;
+      --max: 980px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(105,197,255,.12), transparent 28%),
+        radial-gradient(circle at top left, rgba(47,209,137,.08), transparent 24%),
+        linear-gradient(180deg, #09070e 0%, #100d17 60%, #0c0911 100%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .wrap {
+      width: min(100% - 28px, var(--max));
+      margin: 0 auto;
+      padding: 22px 0 48px;
+    }
+    .hero, .card, .notice {
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      padding: 24px;
+      margin-bottom: 16px;
+      background:
+        linear-gradient(135deg, rgba(105,197,255,.14), rgba(47,209,137,.06)),
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--accent-2);
+      background: rgba(47,209,137,.08);
+      border: 1px solid rgba(47,209,137,.18);
+      border-radius: 999px;
+      padding: 6px 10px;
+      margin-bottom: 12px;
+    }
+    .hero-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .hero-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 14px;
+      border-radius: 14px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 800;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+    }
+    .hero-link.primary {
+      background: linear-gradient(135deg, rgba(105,197,255,.18), rgba(105,197,255,.08));
+      border-color: rgba(105,197,255,.28);
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 {
+      font-size: clamp(28px, 5vw, 42px);
+      line-height: 1.12;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .lead {
+      font-size: clamp(16px, 2.6vw, 20px);
+      color: var(--text);
+      max-width: 54ch;
+    }
+    .sublead {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 68ch;
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1fr;
+      margin-top: 16px;
+    }
+    .card {
+      padding: 18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.02)),
+        linear-gradient(180deg, rgba(29,23,43,.55), rgba(21,17,31,.75));
+    }
+    .card h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+    .card p + p { margin-top: 10px; }
+    .muted { color: var(--muted); }
+    .bullets {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .bullet {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+    }
+    .bullet:first-child { border-top: 0; padding-top: 0; }
+    .icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      background: rgba(105,197,255,.12);
+      border: 1px solid rgba(105,197,255,.24);
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .steps {
+      display: grid;
+      gap: 10px;
+      counter-reset: step;
+      margin-top: 10px;
+    }
+    .step {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: #071020;
+      background: linear-gradient(180deg, var(--accent-2), #62d7ff);
+    }
+    .notice {
+      padding: 16px 18px;
+      margin-top: 16px;
+      border-color: rgba(255,191,71,.2);
+      background: linear-gradient(180deg, rgba(255,191,71,.09), rgba(255,191,71,.03));
+    }
+    .notice strong { color: var(--warn); }
+    .tagline {
+      display: inline-block;
+      margin-top: 12px;
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    footer {
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+    :focus-visible{outline:2px solid #69c5ff;outline-offset:2px}
+    .a11y-note{flex-basis:100%}
+    .a11y-note summary{cursor:pointer;display:inline-block;text-decoration:underline}
+    .a11y-body{margin-top:8px;padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-radius:12px;line-height:1.6;text-align:start}
+    .a11y-body h2{margin:0 0 6px;font-size:14px}
+    .a11y-body p{margin:0 0 6px}
+    @media (min-width: 820px) {
+      .grid.two { grid-template-columns: 1.05fr .95fr; }
+      .grid.equal { grid-template-columns: 1fr 1fr; }
+      .hero { padding: 30px; }
+      .card { padding: 22px; }
+    }
+  </style>
+</head>
+<body>
+<div role="note" style="position:relative;z-index:9999;padding:10px;background:#fff2b3;color:#222;font: bold 14px Arial,sans-serif;text-align:center">גרסת הדגמה • פרויקט לא רשמי. אין להסתמך עליו לקבלת החלטות בטיחות. יש לפעול לפי הנחיות פיקוד העורף.</div>
+  <main class="wrap">
+    <section class="hero">
+      <div class="hero-links">
+        <a class="hero-link primary" href="/red/beready/">חזרה ל־BeReady</a>
+        <a class="hero-link" href="/red/beready/ru/info.html">Русский</a>
+      </div>
+      <div class="eyebrow">BeReady · חיפה והסביבה</div>
+      <h1>BeReady היא מערכת עזר אישית למודעות מוקדמת על פעילות מצפון - בעיקר כטב"מים, שיגורים ואזעקות מלבנון.</h1>
+      <p class="lead">המטרה שלה היא לא להחליף את פיקוד העורף, אלא לתת לי הקשר מוקדם יותר: להבין מה קורה סביב חיפה, האם יש הסלמה בצפון, והאם כדאי להיות יותר דרוכה עוד לפני שיש התרעה רשמית שרלוונטית אליי.</p>
+      <p class="sublead">המערכת נולדה מתוך צורך אמיתי: כשאין ממ"ד צמוד והמקלט רחוק, לפעמים לא מספיק לחכות רק לרגע של האזעקה עצמה. רציתי דרך טובה יותר להבין בזמן אמת האם יש תנועה של כטב"מים או רצף התרעות מלבנון שמתקרב לאזור שלי.</p>
+      <div class="tagline">כלי עזר למצבי אמת. לא תחליף להנחיות רשמיות.</div>
+    </section>
+
+    <div class="grid two">
+      <section class="card">
+        <h2>מה המערכת עושה בפועל</h2>
+        <div class="bullets">
+          <div class="bullet">
+            <div class="icon">•</div>
+            <div>
+              <strong>מנטרת התרעות רשמיות בזמן אמת</strong>
+              <p class="muted">המערכת מושכת את המידע מפיקוד העורף ומציגה אותו בצורה חיה, יחד עם היסטוריה ומפה.</p>
+            </div>
+          </div>
+          <div class="bullet">
+            <div class="icon">•</div>
+            <div>
+              <strong>מנסה לזהות רלוונטיות מוקדמת לחיפה</strong>
+              <p class="muted">לא כל אירוע בצפון אומר שחיפה בסיכון מיידי. BeReady מנסה להבדיל בין רעש כללי לבין פעילות שבאמת עשויה להיות רלוונטית לאזור.</p>
+            </div>
+          </div>
+          <div class="bullet">
+            <div class="icon">•</div>
+            <div>
+              <strong>נותנת תמונת מצב רציפה</strong>
+              <p class="muted">במקום לפתוח שוב ושוב את האפליקציה הרשמית ולנסות להבין לבד את הקצב, הכיוון והמרחק - המערכת מרכזת את זה לדשבורד אחד ברור.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>מה היא לא עושה</h2>
+        <div class="bullets">
+          <div class="bullet">
+            <div class="icon">!</div>
+            <div>
+              <strong>לא מחליפה התרעה רשמית</strong>
+              <p class="muted">אם יש הנחיה רשמית או אזעקה - פועלים לפי פיקוד העורף, תמיד.</p>
+            </div>
+          </div>
+          <div class="bullet">
+            <div class="icon">!</div>
+            <div>
+              <strong>לא מבטיחה חיזוי</strong>
+              <p class="muted">זהו כלי עזר שמנתח דפוסי פעילות והקשר. הוא לא "יודע את העתיד" ולא אמור להיחשב כמערכת חיזוי רשמית.</p>
+            </div>
+          </div>
+          <div class="bullet">
+            <div class="icon">!</div>
+            <div>
+              <strong>לא מיועדת לכל הארץ באותה מידה</strong>
+              <p class="muted">הפוקוס של הפרויקט הוא חיפה והסביבה, ובמיוחד תרחישים של כטב"מים ושיגורים מלבנון.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="grid equal">
+      <section class="card">
+        <h2>איך לחשוב על BeReady</h2>
+        <div class="steps">
+          <div class="step">
+            <div>
+              <strong>יש פעילות בצפון</strong>
+              <p class="muted">נאספות התרעות ואירועים רשמיים בזמן אמת.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <strong>המערכת בודקת הקשר</strong>
+              <p class="muted">נבחנים קצב, רצף, קרבה, אזורים וסוגי פעילות כדי להבין עד כמה זה עשוי להיות רלוונטי לחיפה.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <strong>מתקבלת רמת דריכות</strong>
+              <p class="muted">המטרה היא לתת לי אינדיקציה אישית: האם להיות רגועה, מוכנה, או הרבה יותר קשובה כרגע.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <strong>אם יש התרעה רשמית - היא קובעת</strong>
+              <p class="muted">ברגע שפיקוד העורף נותן התרעה רלוונטית, זו כבר לא רק דריכות - זו הנחיה רשמית.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>למה בניתי את זה</h2>
+        <p>הפרויקט הזה התחיל מתוך מצב מאוד פרקטי: אני גרה באזור שבו האיום שמגיע מלבנון יכול להיות רלוונטי, והמקלט שלי לא צמוד. רציתי דרך מהירה יותר להבין האם יש כטב"מים או הסלמה בצפון שדורשים ממני להיות מוכנה עוד לפני שהאזור שלי מקבל אזעקה.</p>
+        <p class="muted">במילים פשוטות: BeReady נועדה לעזור לי להבין האם מה שקורה בצפון הוא רק "רעש רחוק", או משהו שעלול להתקרב ולהפוך לרלוונטי לחיפה בתוך זמן קצר.</p>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>רמות המערכת - מה כל מצב אומר</h2>
+      <div class="bullets">
+        <div class="bullet">
+          <div class="icon">1</div>
+          <div>
+            <strong>NORMAL</strong>
+            <p class="muted">אין כרגע אינדיקציה מיוחדת שמצביעה על פעילות מצפון שרלוונטית לחיפה. יכולות עדיין להיות התרעות במקומות אחרים, אבל נכון לעכשיו המערכת לא מזהה סיבה להעלות דריכות באזור שלי.</p>
+          </div>
+        </div>
+        <div class="bullet">
+          <div class="icon">2</div>
+          <div>
+            <strong>READY</strong>
+            <p class="muted">יש פעילות בצפון או רצף מסוים של אירועים שמתחילים להיות מעניינים, אבל עדיין לא ברמה שמצדיקה לחץ. זה מצב של תשומת לב: להיות יותר קשובה, לבדוק מה קורה, ולהבין שייתכן שהאירועים הופכים ליותר רלוונטיים.</p>
+          </div>
+        </div>
+        <div class="bullet">
+          <div class="icon">3</div>
+          <div>
+            <strong>HIGH</strong>
+            <p class="muted">המערכת מזהה רמת פעילות גבוהה יותר, או דפוס שנראה כבר משמעותי לחיפה והסביבה. זה לא אומר שיש אזעקה רשמית, אבל כן אומר שהסיכוי לרלוונטיות עולה ושכדאי להיות הרבה יותר דרוכה.</p>
+          </div>
+        </div>
+        <div class="bullet">
+          <div class="icon">4</div>
+          <div>
+            <strong>PRE_SHELTER</strong>
+            <p class="muted">זהו מצב מוקדם של BeReady בלבד. המשמעות שלו היא שהמערכת מזהה הקשר שנראה קרוב או מדאיג במיוחד, עוד לפני התרעה רשמית לחיפה. זה לא אות רשמי להיכנס למרחב מוגן, אבל זה כן מצב שבו כדאי להיות ממש מוכנה לתגובה מהירה.</p>
+          </div>
+        </div>
+        <div class="bullet">
+          <div class="icon">5</div>
+          <div>
+            <strong>OFFICIAL_EARLY_WARNING</strong>
+            <p class="muted">יש התרעה רשמית מוקדמת של פיקוד העורף, אבל עדיין לא אזעקת "היכנסו למרחב מוגן" לאזור שלי. כאן כבר מדובר בשכבה רשמית, והמשמעות היא לעקוב מקרוב מאוד אחרי ההנחיות ולהיות ערוכה מיידית.</p>
+          </div>
+        </div>
+        <div class="bullet">
+          <div class="icon">6</div>
+          <div>
+            <strong>SHELTER_NOW</strong>
+            <p class="muted">יש התרעה רשמית רלוונטית לחיפה והסביבה שמחייבת פעולה מיידית לפי הנחיות פיקוד העורף. במצב הזה אין יותר משמעות לניתוח של BeReady - ההנחיה הרשמית היא מה שקובע.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="notice">
+      <strong>חשוב:</strong> BeReady היא מערכת עזר אישית למודעות מוקדמת. היא מציגה מידע, הקשר ורמות דריכות עבור חיפה והסביבה, בדגש על תרחישים מלבנון. היא אינה תחליף לאפליקציה או להנחיות של פיקוד העורף, ואינה מקור סמכות מבצעי.
+    </section>
+
+    <footer>
+      נוסח מעודכן לדף ההסבר של BeReady · מותאם להסבר ברור, ישיר ומדויק יותר למטרת הפרויקט.
+      <details class="a11y-note">
+          <summary>הבהרה בנושא נגישות</summary>
+          <div class="a11y-body">
+            <h2>הבהרה בנושא נגישות</h2>
+            <p>אתר BeReady הוא מעבדה טכנולוגית פרטית וניסיונית, ללא מטרות רווח, המשמשת לצורכי מחקר, פיתוח ובדיקת טכנולוגיות ואינה מופעלת במסגרת פעילות עסקית או מסחרית.</p>
+            <p>בשל אופיו הניסיוני של המיזם, האתר לא עבר תהליך הנגשה מלא או בדיקת התאמה לתקן הישראלי 5568. לפיכך, ייתכן שחלק מתכני האתר ורכיביו אינם נגישים באופן מלא.</p>
+            <p>האתר מוצע במתכונתו הקיימת (AS IS), ללא התחייבות לזמינות, לתקינות או להתאמה לצורכי המשתמש.</p>
+            <p>אין באמור כדי לגרוע מהוראות הדין המחייבות.</p>
+          </div>
+        </details>
+    </footer>
+  </main>
+</body>
+</html>

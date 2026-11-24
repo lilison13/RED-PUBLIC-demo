@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="ru" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BeReady - О системе</title>
+  <meta name="description" content="BeReady это персональная вспомогательная система для раннего понимания активности с севера: БПЛА, пуски и тревоги из Ливана, с акцентом на Хайфу и окрестности." />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:locale" content="ru_RU" />
+  <meta property="og:title" content="BeReady - О системе" />
+  <meta property="og:description" content="Объяснение системы BeReady, ее уровней состояния и того, что каждый уровень означает на практике для Хайфы и окрестностей." />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <style>
+    :root {
+      --bg: #0b0911;
+      --panel: #15111f;
+      --panel-2: #1d172b;
+      --text: #f6f2ff;
+      --muted: #c7bfd7;
+      --line: rgba(255,255,255,.09);
+      --accent: #69c5ff;
+      --accent-2: #2fd189;
+      --warn: #ffbf47;
+      --danger: #ff5c73;
+      --shadow: 0 18px 50px rgba(0,0,0,.3);
+      --radius: 20px;
+      --max: 980px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(105,197,255,.12), transparent 28%),
+        radial-gradient(circle at top left, rgba(47,209,137,.08), transparent 24%),
+        linear-gradient(180deg, #09070e 0%, #100d17 60%, #0c0911 100%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .wrap {
+      width: min(100% - 28px, var(--max));
+      margin: 0 auto;
+      padding: 22px 0 48px;
+    }
+    .hero, .card, .notice {
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      padding: 24px;
+      margin-bottom: 16px;
+      background:
+        linear-gradient(135deg, rgba(105,197,255,.14), rgba(47,209,137,.06)),
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--accent-2);
+      background: rgba(47,209,137,.08);
+      border: 1px solid rgba(47,209,137,.18);
+      border-radius: 999px;
+      padding: 6px 10px;
+      margin-bottom: 12px;
+    }
+    .hero-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .hero-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 14px;
+      border-radius: 14px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 800;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+    }
+    .hero-link.primary {
+      background: linear-gradient(135deg, rgba(105,197,255,.18), rgba(105,197,255,.08));
+      border-color: rgba(105,197,255,.28);
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 {
+      font-size: clamp(28px, 5vw, 42px);
+      line-height: 1.12;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .lead {
+      font-size: clamp(16px, 2.6vw, 20px);
+      color: var(--text);
+      max-width: 54ch;
+    }
+    .sublead {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 68ch;
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1fr;
+      margin-top: 16px;
+    }
+    .card {
+      padding: 18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.02)),
+        linear-gradient(180deg, rgba(29,23,43,.55), rgba(21,17,31,.75));
+    }
+    .card h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+    .card p + p { margin-top: 10px; }
+    .muted { color: var(--muted); }
+    .bullets {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .bullet {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+    }
+    .bullet:first-child { border-top: 0; padding-top: 0; }
+    .icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      background: rgba(105,197,255,.12);
+      border: 1px solid rgba(105,197,255,.24);
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .steps {
+      display: grid;
+      gap: 10px;
+      counter-reset: step;
+      margin-top: 10px;
+    }
+    .step {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: #071020;
+      background: linear-gradient(180deg, var(--accent-2), #62d7ff);
+    }
+    .notice {
+      padding: 16px 18px;
+      margin-top: 16px;
+      border-color: rgba(255,191,71,.2);
+      background: linear-gradient(180deg, rgba(255,191,71,.09), rgba(255,191,71,.03));
+    }
+    .notice strong { color: var(--warn); }
+    .tagline {
+      display: inline-block;
+      margin-top: 12px;
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    footer {
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+    :focus-visible{outline:2px solid #69c5ff;outline-offset:2px}
+    .a11y-note{flex-basis:100%}
+    .a11y-note summary{cursor:pointer;display:inline-block;text-decoration:underline}
+    .a11y-body{margin-top:8px;padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-radius:12px;line-height:1.6;text-align:start}
+    .a11y-body h2{margin:0 0 6px;font-size:14px}
+    .a11y-body p{margin:0 0 6px}
+    @media (min-width: 820px) {
+      .grid.two { grid-template-columns: 1.05fr .95fr; }
+      .grid.equal { grid-template-columns: 1fr 1fr; }
+      .hero { padding: 30px; }
+      .card { padding: 22px; }
+    }
+  </style>
+</head>
+<body>
+<div role="note" style="position:relative;z-index:9999;padding:10px;background:#fff2b3;color:#222;font: bold 14px Arial,sans-serif;text-align:center">ДЕМОНСТРАЦИЯ • Неофициальный проект. Не используйте для принятия решений о безопасности. Следуйте официальным указаниям.</div>
+  <main class="wrap">
+    <section class="hero">
+      <div class="hero-links">
+        <a class="hero-link primary" href="/red/beready/ru/">Назад к BeReady</a>
+        <a class="hero-link" href="/red/beready/info.html">עברית</a>
+      </div>
+      <div class="eyebrow">BeReady · Хайфа и окрестности</div>
+      <h1>BeReady это персональная вспомогательная система для раннего понимания активности с севера - прежде всего БПЛА, пусков и тревог из Ливана.</h1>
+      <p class="lead">Ее цель не в том, чтобы заменить Командование тыла, а в том, чтобы дать мне более ранний контекст: понять, что происходит вокруг Хайфы, есть ли эскалация на севере, и стоит ли быть более настороженной еще до официального предупреждения, относящегося ко мне.</p>
+      <p class="sublead">Система появилась из реальной необходимости: когда рядом нет защищенной комнаты, а укрытие далеко, иногда недостаточно просто ждать самой сирены. Мне нужен был лучший способ в реальном времени понять, есть ли движение БПЛА или цепочка тревог из Ливана, которая приближается к моему району.</p>
+      <div class="tagline">Вспомогательный инструмент для реальных ситуаций. Не заменяет официальные инструкции.</div>
+    </section>
+
+    <div class="grid two">
+      <section class="card">
+        <h2>Что система делает на практике</h2>
+        <div class="bullets">
+          <div class="bullet">
+            <div class="icon">•</div>
+            <div>
+              <strong>Отслеживает официальные предупреждения в реальном времени</strong>
+              <p class="muted">Система получает данные от Командования тыла и показывает их в живом виде вместе с историей и картой.</p>
+            </div>
+          </div>
+          <div class="bullet">
+            <div class="icon">•</div>
+            <div>
+              <strong>Пытается заранее определить релевантность для Хайфы</strong>
+              <p class="muted">Не каждое событие на севере означает немедленный риск для Хайфы. BeReady старается отличить общий шум от активности, которая действительно может быть важной для этого района.</p>
+            </div>
+          </div>
+          <div class="bullet">
+            <div class="icon">•</div>
+            <div>
+              <strong>Дает непрерывную картину ситуации</strong>
+              <p class="muted">Вместо того чтобы снова и снова открывать официальное приложение и пытаться самой понять темп, направление и расстояние, система собирает все это в один понятный дашборд.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Чего она не делает</h2>
+        <div class="bullets">
+          <div class="bullet">
+            <div class="icon">!</div>
+            <div>
+              <strong>Не заменяет официальную тревогу</strong>
+              <p class="muted">Если есть официальное указание или сирена, действуют по инструкциям Командования тыла. Всегда.</p>
+            </div>
+          </div>
+          <div class="bullet">
+            <div class="icon">!</div>
+            <div>
+              <strong>Не обещает точный прогноз</strong>
+              <p class="muted">Это вспомогательный инструмент, который анализирует паттерны активности и контекст. Он не "знает будущее" и не должен считаться официальной системой прогнозирования.</p>
+            </div>
+          </div>
+          <div class="bullet">
+            <div class="icon">!</div>
+            <div>
+              <strong>Не предназначена для всей страны в одинаковой степени</strong>
+              <p class="muted">Фокус проекта это Хайфа и окрестности, особенно сценарии с БПЛА и пусками из Ливана.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="grid equal">
+      <section class="card">
+        <h2>Как воспринимать BeReady</h2>
+        <div class="steps">
+          <div class="step">
+            <div>
+              <strong>Есть активность на севере</strong>
+              <p class="muted">Официальные тревоги и события собираются в реальном времени.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <strong>Система проверяет контекст</strong>
+              <p class="muted">Оцениваются темп, последовательность, близость, районы и типы активности, чтобы понять, насколько это может быть релевантно Хайфе.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <strong>Формируется уровень готовности</strong>
+              <p class="muted">Цель дать мне личную индикацию: быть спокойной, подготовленной или намного более внимательной прямо сейчас.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <strong>Если есть официальное предупреждение - оно определяет все</strong>
+              <p class="muted">В тот момент, когда Командование тыла дает релевантное предупреждение, это уже не просто уровень готовности, а официальная инструкция.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Почему я это сделала</h2>
+        <p>Этот проект начался с очень практической ситуации: я живу в районе, где угроза со стороны Ливана может быть релевантной, а мое укрытие не находится рядом. Мне нужен был более быстрый способ понять, есть ли БПЛА или эскалация на севере, которые требуют от меня быть готовой еще до того, как мой район получит сирену.</p>
+        <p class="muted">Проще говоря: BeReady создана, чтобы помочь мне понять, является ли происходящее на севере просто "далеким шумом" или чем-то, что может приблизиться и быстро стать релевантным для Хайфы.</p>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>Уровни системы - что означает каждый статус</h2>
+      <div class="bullets">
+        <div class="bullet">
+          <div class="icon">1</div>
+          <div>
+            <strong>NORMAL</strong>
+            <p class="muted">Сейчас нет особой индикации, указывающей на активность с севера, релевантную для Хайфы. Тревоги могут быть в других местах, но на данный момент система не видит причины повышать уровень настороженности в моем районе.</p>
+          </div>
+        </div>
+        <div class="bullet">
+          <div class="icon">2</div>
+          <div>
+            <strong>READY</strong>
+            <p class="muted">Есть активность на севере или определенная цепочка событий, которая начинает выглядеть интересной, но еще не на том уровне, который оправдывает тревогу. Это состояние повышенного внимания: быть более собранной, следить за происходящим и понимать, что события могут стать более релевантными.</p>
+          </div>
+        </div>
+        <div class="bullet">
+          <div class="icon">3</div>
+          <div>
+            <strong>HIGH</strong>
+            <p class="muted">Система распознает более высокий уровень активности или паттерн, который уже выглядит значимым для Хайфы и окрестностей. Это не означает, что есть официальная сирена, но означает, что вероятность релевантности повышается и стоит быть намного более готовой.</p>
+          </div>
+        </div>
+        <div class="bullet">
+          <div class="icon">4</div>
+          <div>
+            <strong>PRE_SHELTER</strong>
+            <p class="muted">Это ранний статус только от BeReady. Его смысл в том, что система видит контекст, который выглядит особенно близким или тревожным, еще до официального предупреждения для Хайфы. Это не официальный сигнал идти в укрытие, но это состояние, в котором стоит быть действительно готовой к быстрой реакции.</p>
+          </div>
+        </div>
+        <div class="bullet">
+          <div class="icon">5</div>
+          <div>
+            <strong>OFFICIAL_EARLY_WARNING</strong>
+            <p class="muted">Есть официальное раннее предупреждение Командования тыла, но еще не сирена "войти в защищенное пространство" для моего района. Здесь уже речь идет об официальном уровне, и смысл в том, чтобы очень внимательно следить за инструкциями и быть немедленно готовой.</p>
+          </div>
+        </div>
+        <div class="bullet">
+          <div class="icon">6</div>
+          <div>
+            <strong>SHELTER_NOW</strong>
+            <p class="muted">Есть официальное предупреждение, относящееся к Хайфе и окрестностям, которое требует немедленного действия по инструкциям Командования тыла. В таком состоянии анализ BeReady уже не имеет значения - решающей является официальная инструкция.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="notice">
+      <strong>Важно:</strong> BeReady это персональная вспомогательная система для раннего понимания ситуации. Она показывает информацию, контекст и уровни готовности для Хайфы и окрестностей с акцентом на сценарии из Ливана. Она не заменяет приложение или инструкции Командования тыла и не является оперативным источником полномочий.
+    </section>
+
+    <footer>
+      Обновленная версия страницы объяснения BeReady · адаптирована для более ясного, прямого и точного описания цели проекта.
+      <details class="a11y-note">
+          <summary>Заявление о доступности</summary>
+          <div class="a11y-body">
+            <h2>Заявление о доступности</h2>
+            <p>Сайт BeReady является частной экспериментальной технологической лабораторией, некоммерческой, используемой для исследований, разработки и тестирования технологий, и не действует в рамках деловой или коммерческой деятельности.</p>
+            <p>Из-за экспериментального характера проекта сайт не проходил полный процесс обеспечения доступности или проверку на соответствие израильскому стандарту 5568. Поэтому некоторые материалы и компоненты сайта могут быть доступны не в полной мере.</p>
+            <p>Сайт предоставляется «как есть» (AS IS), без каких-либо гарантий доступности, исправности или соответствия потребностям пользователя.</p>
+            <p>Сказанное не умаляет обязательных положений закона.</p>
+          </div>
+        </details>
+    </footer>
+  </main>
+</body>
+</html>

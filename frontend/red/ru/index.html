@@ -1,0 +1,1922 @@
+<!DOCTYPE html>
+<html lang="ru" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Red Alert Monitor в реальном времени | Карта тревог в Израиле | Beready</title>
+  <meta name="description" content="Мониторинг Red Alert в реальном времени для Израиля: живая карта тревог, текущий статус, история оповещений и выбранные населённые пункты." />
+  <meta name="keywords" content="Red Alert, тревоги Израиль, карта тревог, ракеты Израиль, live rocket alerts, missile alerts israel, история тревог, города" />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+
+
+
+
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="ru_RU" />
+  <meta property="og:title" content="Red Alert Monitor в реальном времени | Beready" />
+  <meta property="og:description" content="Живая карта Red Alert, текущий статус, история тревог и быстрый контроль по выбранным городам в Израиле." />
+
+  <meta property="og:site_name" content="Beready" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Red Alert Monitor в реальном времени | Beready" />
+  <meta name="twitter:description" content="Живая карта Red Alert для Израиля: текущий статус, история тревог и выбранные города." />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <style>
+:root{
+  --bg:#0a0810;
+  --bg-soft:#120e19;
+  --panel:#14101d;
+  --panel-soft:#1a1427;
+  --panel-strong:#201830;
+  --text:#f5f2fb;
+  --muted:#b9b1c9;
+  --border:rgba(255,255,255,.08);
+  --border-strong:rgba(255,255,255,.14);
+  --accent:#68c6ff;
+  --accent-soft:rgba(104,198,255,.12);
+  --danger:#ff3b3b;
+  --danger-soft:rgba(255,59,59,.13);
+  --danger-dark:#8b1e2d;
+  --danger-dark-soft:rgba(139,30,45,.16);
+  --warning:#ffbe55;
+  --warning-soft:rgba(255,190,85,.15);
+  --success:#39d98a;
+  --success-soft:rgba(57,217,138,.13);
+  --neutral:#8d93a5;
+  --neutral-soft:rgba(141,147,165,.14);
+  --shadow:0 22px 65px rgba(0,0,0,.34);
+  --content-width:1340px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;scroll-behavior:smooth}
+body{
+  min-height:100vh;
+  font-family:Inter,"Segoe UI",Arial,sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at top right, rgba(104,198,255,.10), transparent 20%),
+    radial-gradient(circle at top left, rgba(255,190,85,.05), transparent 16%),
+    linear-gradient(180deg,#09070e 0%,#100d17 58%,#0c0911 100%);
+  -webkit-tap-highlight-color:transparent;
+}
+body.live-alert{
+  background:
+    radial-gradient(circle at top right, rgba(255,59,59,.12), transparent 22%),
+    radial-gradient(circle at top left, rgba(104,198,255,.07), transparent 18%),
+    linear-gradient(180deg,#09070e 0%,#120d16 58%,#0c0911 100%);
+}
+a{color:inherit}
+button,input{font:inherit}
+.page{width:min(100%,var(--content-width));margin:0 auto;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom))}
+.shell{background:rgba(12,10,18,.9);border:1px solid var(--border);border-radius:30px;box-shadow:var(--shadow);overflow:hidden;backdrop-filter:blur(16px)}
+.app{display:grid;gap:0}
+.button,.ghost-btn,.filter-btn,.mini-btn,.back-to-top{appearance:none;border:none;cursor:pointer;font:inherit}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 15px;border-radius:15px;text-decoration:none;font-size:14px;font-weight:800;transition:transform .14s ease, filter .14s ease}
+.button:hover,.ghost-btn:hover,.filter-btn:hover,.summary-item:hover,.alert-item:hover,.my-city-row:hover,.highlight-card:hover{transform:translateY(-1px);filter:brightness(1.03)}
+.button.primary{background:linear-gradient(135deg, rgba(104,198,255,.18), rgba(104,198,255,.08));border:1px solid rgba(104,198,255,.34)}
+.button.secondary{background:rgba(255,255,255,.04);border:1px solid var(--border-strong)}
+.button.map-link{background:linear-gradient(135deg, rgba(255,59,59,.17), rgba(139,30,45,.22));border:1px solid rgba(255,59,59,.28)}
+.topbar{padding:16px 20px;border-bottom:1px solid var(--border);background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));display:grid;gap:14px}
+.topbar-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.brand-block{display:grid;gap:8px;min-width:0}
+.inline-badge{display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;min-height:32px;padding:0 11px;border-radius:999px;border:1px solid var(--border-strong);background:rgba(255,255,255,.04);font-size:12px;font-weight:800;color:#f6e9ff}
+.inline-badge::before{content:"";width:8px;height:8px;border-radius:999px;background:var(--danger);box-shadow:0 0 0 4px rgba(255,59,59,.12)}
+.hero-title{margin:0;font-size:clamp(28px,3.5vw,38px);line-height:1.03;letter-spacing:-.02em}
+.hero-subtitle{margin:0;max-width:68ch;color:var(--muted);font-size:14px;line-height:1.7}
+.top-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.top-actions .button{flex:0 0 auto}
+.disclaimer{margin:0 20px;padding:14px 16px;border-radius:18px;border:1px solid rgba(255,190,85,.28);background:linear-gradient(180deg, rgba(255,190,85,.14), rgba(255,190,85,.07));color:#fff3d7;box-shadow:0 12px 30px rgba(0,0,0,.14)}
+.disclaimer p{margin:0;font-size:13px;line-height:1.7}.disclaimer strong{color:#fff8ea}.hero-panel{margin:16px 20px 0}
+.content{padding:18px 20px 22px;display:grid;gap:16px}
+.haifa-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 16px;background:linear-gradient(135deg, rgba(104,198,255,.07), rgba(255,255,255,.03));border:1px solid rgba(104,198,255,.18);border-radius:22px}
+.haifa-copy{display:grid;gap:5px}.haifa-title{margin:0;font-size:16px;font-weight:900;line-height:1.2}.haifa-text{margin:0;color:var(--muted);font-size:13px;line-height:1.65;max-width:72ch}
+.layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.9fr);gap:16px;align-items:start}
+.main-stack,.side-stack{display:grid;gap:16px;min-width:0}
+.card{background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.018));border:1px solid rgba(255,255,255,.08);border-radius:22px;min-width:0;overflow:hidden}
+.section-pad,.status-card,.map-card,.stream-header,.stream-body{padding:16px}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.section-title{font-size:18px;font-weight:900;line-height:1.2;margin:0}.section-copy{margin:0;color:var(--muted);font-size:13px;line-height:1.65;max-width:70ch}.small{color:var(--muted);font-size:12px;line-height:1.5}
+.status-card{position:relative;display:grid;gap:14px}.status-card::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at top left, rgba(104,198,255,.10), transparent 34%);pointer-events:none}
+.status-head{position:relative;z-index:1;display:grid;gap:12px}.status-badge{display:inline-flex;align-items:center;width:max-content;max-width:100%;min-height:34px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);font-size:12px;font-weight:900}.status-badge.ok{color:var(--text)}.status-badge.alert{background:var(--danger-soft);border-color:rgba(255,59,59,.28);color:#ffdfdf}
+.status-title{font-size:clamp(25px,3vw,33px);font-weight:900;line-height:1.05}.status-subtitle{max-width:74ch;color:var(--muted);font-size:15px;line-height:1.7}.status-context{padding:13px 15px;border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:var(--muted);font-size:14px;line-height:1.7}.status-context strong{color:var(--text)}.status-context.is-live{border-color:rgba(255,59,59,.22);background:rgba(255,59,59,.07)}
+.summary-list,.recent-grid,.stream-body,.my-cities-list{display:grid;gap:10px}
+.highlight-card,.summary-item,.alert-item,.my-city-row,.technical-grid{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);border-radius:18px}
+.highlight-card{display:grid;grid-template-columns:8px 1fr;overflow:hidden}.highlight-strip,.alert-strip{background:var(--neutral)}.highlight-content,.alert-content{padding:15px;display:grid;gap:10px}.highlight-top,.alert-top,.summary-item-meta{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.highlight-title{font-size:22px;font-weight:900;line-height:1.1}.alert-title{font-size:17px;font-weight:900;line-height:1.15}.highlight-time,.alert-time,.summary-item-meta{color:var(--muted);font-size:12px}.highlight-desc,.alert-desc{color:var(--muted);font-size:13px;line-height:1.6}.summary-item{padding:13px 14px;cursor:pointer}.summary-item-title{font-size:15px;font-weight:900}
+.alert-item{display:grid;grid-template-columns:6px 1fr;overflow:hidden;cursor:pointer}.alert-item.live .alert-strip{box-shadow:0 0 18px rgba(255,59,59,.22)}.alert-item.severity-red .alert-strip{background:var(--danger)}.alert-item.severity-orange .alert-strip{background:var(--warning)}.alert-item.severity-violet .alert-strip{background:var(--danger-dark)}.alert-item.severity-blue .alert-strip{background:var(--accent)}.alert-item.severity-gray .alert-strip{background:var(--neutral)}
+.alert-zone-inline,.alert-cities-inline,.summary-cities-inline,.history-area-inline,.shelter-time{font-size:13px;line-height:1.65;overflow-wrap:anywhere}.alert-zone-inline,.summary-cities-inline,.history-area-inline{color:var(--text)}.alert-cities-inline,.shelter-time{color:var(--muted)}
+.cities{display:block;line-height:1.65;overflow-wrap:anywhere}.city-chip{display:inline;background:none;border:none;padding:0;margin:0 0 0 4px;color:var(--text);font-size:13px}.city-chip + .city-chip::before{content:" • ";color:var(--muted)}
+.filters{display:flex;gap:8px;overflow:auto;padding-bottom:2px;scrollbar-width:thin}
+@media (max-width:760px){.haifa-text{font-size:12.5px;line-height:1.55}}
+@media (max-width:520px){.filters{flex-wrap:wrap;overflow:visible;gap:10px}.filter-btn{flex:0 0 auto;width:auto}}.filter-btn,.ghost-btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 13px;border-radius:13px;background:rgba(255,255,255,.04);color:var(--text);border:1px solid rgba(255,255,255,.08);white-space:nowrap;flex:0 0 auto}.filter-btn.active{background:rgba(104,198,255,.12);border-color:rgba(104,198,255,.28);box-shadow:inset 0 0 0 1px rgba(104,198,255,.12)}
+.search{width:100%;min-height:48px;padding:0 14px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:var(--text);font-size:15px;outline:none;margin-bottom:10px}.search:focus{border-color:rgba(104,198,255,.28);box-shadow:0 0 0 3px rgba(104,198,255,.08)}
+.picker-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}.my-city-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 14px;text-align:right;cursor:pointer;min-width:0;min-height:58px}.my-city-row.active{border-color:rgba(104,198,255,.28);background:rgba(104,198,255,.10)}.my-city-main{display:flex;align-items:center;gap:12px;min-width:0;flex:1}.my-city-name{font-size:15px;font-weight:800;margin-bottom:4px}.my-city-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}.select-dot{width:18px;height:18px;border-radius:999px;border:2px solid rgba(184,174,204,.9);background:transparent;flex:0 0 18px;cursor:pointer}.my-city-row.active .select-dot{background:var(--accent);border-color:#cfeeff;box-shadow:0 0 0 4px rgba(104,198,255,.12)}.mini-btn{min-width:38px;height:38px;padding:0 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text);font-size:16px}.mini-btn.add{border-color:rgba(104,198,255,.22);background:rgba(104,198,255,.10)}.mini-btn.remove{border-color:rgba(255,59,59,.22);background:rgba(255,59,59,.10)}
+.map-card{display:grid;gap:12px}.map-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.map-frame{padding:10px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:18px}#map{height:420px;border-radius:15px;overflow:hidden;border:1px solid rgba(255,255,255,.06);background:#17131f}.legend{display:flex;gap:8px;flex-wrap:wrap}.chip{display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);font-size:12px;font-weight:700;color:var(--text)}.chip::before{content:"";width:8px;height:8px;border-radius:999px;flex:0 0 auto;background:currentColor;box-shadow:0 0 0 5px rgba(255,255,255,.02)}.chip.red{color:#ffdcdc;background:var(--danger-soft);border-color:rgba(255,59,59,.20)}.chip.red::before{background:var(--danger)}.chip.maroon{color:#f1d2da;background:var(--danger-dark-soft);border-color:rgba(139,30,45,.26)}.chip.maroon::before{background:var(--danger-dark)}.chip.blue{color:#dff3ff;background:var(--accent-soft);border-color:rgba(104,198,255,.22)}.chip.blue::before{background:var(--accent)}.chip.gray{color:#ebedf5;background:var(--neutral-soft);border-color:rgba(141,147,165,.20)}.chip.gray::before{background:var(--neutral)}.chip.green{color:#dbffe9;background:var(--success-soft);border-color:rgba(57,217,138,.22)}.chip.green::before{background:var(--success)}.chip.orange{color:#ffe9cb;background:var(--warning-soft);border-color:rgba(255,190,85,.26)}.chip.orange::before{background:var(--warning)}
+.history-card{padding:0}.stream-header{border-bottom:1px solid rgba(255,255,255,.06)}
+.top-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:14px;background:rgba(255,255,255,.025);border-radius:18px}.top-meta .chip{justify-content:flex-start;border:none;background:rgba(255,255,255,.035);min-height:42px;padding:0 12px;white-space:normal}.top-meta .chip::before{display:none}
+.technical-panel{border-radius:20px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);overflow:hidden}.technical-panel summary{list-style:none;cursor:pointer;padding:15px 17px;font-weight:800}.technical-panel summary::-webkit-details-marker{display:none}.technical-panel .top-meta{margin:0 16px 16px}
+.footer{padding:0 20px 20px;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.footer-note{display:none}
+:focus-visible{outline:2px solid #69c5ff;outline-offset:2px}
+.a11y-note{flex-basis:100%}
+.a11y-note summary{cursor:pointer;display:inline-block;text-decoration:underline}
+.a11y-body{margin-top:8px;padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-radius:12px;line-height:1.6;text-align:start}
+.a11y-body h2{margin:0 0 6px;font-size:14px}
+.a11y-body p{margin:0 0 6px}
+.back-to-top{position:fixed;left:16px;bottom:16px;width:44px;height:44px;border-radius:999px;background:rgba(16,13,24,.88);color:var(--text);border:1px solid rgba(255,255,255,.12);box-shadow:0 16px 34px rgba(0,0,0,.28);display:none;align-items:center;justify-content:center;text-decoration:none;z-index:50}.back-to-top.visible{display:flex}
+.anchor-offset{scroll-margin-top:82px}.empty{padding:18px;text-align:center;color:var(--muted);border:1px dashed rgba(255,255,255,.10);border-radius:16px}.clickable-card{cursor:pointer}.clickable-card:focus-visible{outline:2px solid rgba(104,198,255,.55);outline-offset:2px}.utility-hidden{display:none !important}
+.mobile-priority-status{display:none}
+@media (max-width:1120px){.layout{grid-template-columns:minmax(0,1fr)}.side-stack{grid-template-columns:repeat(2,minmax(0,1fr))}.history-card{grid-column:1/-1}}
+@media (max-width:900px){.side-stack{grid-template-columns:1fr}.topbar-row{display:grid;grid-template-columns:1fr;gap:12px}.top-actions{justify-content:flex-start}.top-meta{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.page{padding:0}.shell{border-radius:0;border-left:none;border-right:none;min-height:100vh}.app{display:flex;flex-direction:column}.hero-panel{order:1;margin:14px 14px 0}.topbar{order:2;padding:12px 14px}.disclaimer{order:3;margin:0 14px;padding:12px 14px}.mobile-priority-status{display:grid;order:4;margin:14px 14px 0}#statusSection{display:none}.content{order:5}.footer{order:6}.technical-panel{order:7}.content,.footer{padding-left:14px;padding-right:14px}.content{padding-top:14px;padding-bottom:18px}.button,.ghost-btn,.filter-btn{min-height:44px}.top-actions,.map-actions,.haifa-actions{width:100%}.top-actions .button,.map-actions .button,.haifa-actions .button{flex:1 1 auto}.card,.technical-panel,.haifa-card,.hero-panel{border-radius:18px}.section-pad,.status-card,.map-card,.stream-header,.stream-body{padding:14px}.hero-title{font-size:24px;line-height:1.12}.hero-subtitle{font-size:12.5px;line-height:1.5}.layout{grid-template-columns:1fr}.main-stack,.side-stack{gap:14px}.haifa-card{grid-template-columns:1fr;align-items:start;padding:14px;order:6}.status-card{order:1}.map-card{order:2}.recent-card{order:3}.filters-card{order:4}.cities-card{order:5}.history-card{order:7}.side-stack{display:contents}#map{height:60vh;min-height:340px;max-height:560px}.top-meta{grid-template-columns:1fr}.back-to-top{left:14px;bottom:14px}}
+@media (max-width:760px){.haifa-text{font-size:12.5px;line-height:1.55}}
+@media (max-width:520px){.top-actions,.map-actions,.haifa-actions{display:grid;grid-template-columns:1fr;gap:10px}.button,.ghost-btn{width:100%}.card-head,.map-toolbar,.highlight-top,.alert-top,.summary-item-meta{align-items:stretch}.highlight-title{font-size:20px}.alert-title{font-size:16px}.my-city-row{padding:12px}.top-meta .chip{min-height:38px;font-size:12px}.disclaimer p{font-size:12.5px}}
+</style>
+</head>
+<body>
+<div role="note" style="position:relative;z-index:9999;padding:10px;background:#fff2b3;color:#222;font: bold 14px Arial,sans-serif;text-align:center">ДЕМОНСТРАЦИЯ • Неофициальный проект. Не используйте для принятия решений о безопасности. Следуйте официальным указаниям.</div>
+  <div class="page">
+    <div class="shell">
+      <div class="app">
+        <header class="topbar">
+          <div class="topbar-row">
+            <div class="top-actions" aria-label="Основные действия">
+              <a class="button secondary" href="#filterSection">Фильтр по регионам</a>
+              <a class="button secondary" href="#mapSection">Быстрая карта</a>
+              <a class="button map-link" href="/map/">Полная карта</a>
+              <a class="button secondary" href="/red/beready/ru/">BeReady Haifa</a>
+            </div>
+          </div>
+        </header>
+
+        <section class="disclaimer" aria-label="Важное пояснение">
+          <p><strong>Важно:</strong> Информация на сайте предназначена только для удобства, может быть неполной, неточной или приходить с задержкой и не заменяет официальные оповещения и указания Командования тыла. В любой чрезвычайной ситуации действуйте только по официальным инструкциям.</p>
+        </section>
+
+        <section class="card section-pad hero-panel" aria-label="Вступление страницы">
+          <h1 class="hero-title">BeReady мониторинг Red Alert в реальном времени и история тревог</h1>
+          <p class="hero-subtitle">Страница мониторинга в реальном времени: текущий статус, быстрая карта, последние тревоги, история событий и поиск городов. Интерфейс предназначен для удобного наблюдения и не заменяет официальные указания.</p>
+        </section>
+
+        <section class="card status-card mobile-priority-status" id="mobilePriorityStatus" aria-label="Быстрый текущий статус для мобильных">
+          <div class="status-head">
+            <div class="card-head">
+              <div>
+                <h2 class="section-title">Текущий статус</h2>
+              </div>
+              <div class="small" id="mobileLiveSummary">Ожидание данных</div>
+            </div>
+            <div id="mobileStatusBadge" class="status-badge ok">Нет тревоги</div>
+            <div id="mobileStatusTitle" class="status-title">Сейчас нет активной тревоги</div>
+            <div id="mobileStatusSubtitle" class="status-subtitle">Система подключена и ждёт новое оповещение</div>
+            <div id="mobileStatusContextLine" class="status-context is-idle">Сейчас нет активного события для отображения.</div>
+          </div>
+          <div id="mobileCurrentAlertCard"></div>
+        </section>
+
+        <main class="content">
+          <section class="haifa-card" aria-label="Ссылка на страницу Хайфы">
+            <div class="haifa-copy">
+              <h2 class="haifa-title">BeReady Haifa</h2>
+              <p class="haifa-text">Ссылка на специализированный интерфейс BeReady Haifa с дополнительной визуализацией и фокусом на Хайфу и район залива.</p>
+            </div>
+            <div class="haifa-actions">
+              <a class="button secondary" href="/red/beready/ru/">Открыть BeReady Haifa</a>
+            </div>
+          </section>
+
+          <div class="layout">
+            <section class="main-stack">
+              <section class="card status-card anchor-offset" id="statusSection">
+                <div class="status-head">
+                  <div class="card-head">
+                    <div>
+                      <h2 class="section-title">Текущий статус</h2>
+                    </div>
+                    <div class="small" id="liveSummary">Ожидание данных</div>
+                  </div>
+                  <div id="statusBadge" class="status-badge ok">Нет тревоги</div>
+                  <div id="statusTitle" class="status-title">Сейчас нет активной тревоги</div>
+                  <div id="statusSubtitle" class="status-subtitle">Система подключена и ожидает новую тревогу</div>
+                  <div id="statusContextLine" class="status-context is-idle">Сейчас нет активного события для отображения.</div>
+                </div>
+                <div id="currentAlertCard"></div>
+              </section>
+
+              <section class="card map-card anchor-offset" id="mapSection">
+                <div class="map-toolbar">
+                  <div>
+                    <h2 class="section-title">Быстрая карта</h2>
+                    <p class="section-copy">Быстрый обзор прямо на странице. Для более удобной и широкой рабочей области можно открыть полную карту.</p>
+                  </div>
+                  <div class="map-actions">
+                    <a class="button map-link" href="/map/">Открыть полную карту</a>
+                  </div>
+                </div>
+                <div class="map-frame">
+                  <div id="map" role="region" aria-label="Живая карта оповещений по всему Израилю"></div>
+                </div>
+                <div class="card-head" style="margin:0;align-items:center">
+                  <div class="small" id="mapSummary">Активные события показаны на карте</div>
+                  <div class="legend">
+                    <span class="chip red">Ракетный обстрел</span>
+                    <span class="chip maroon">БПЛА</span>
+                    <span class="chip blue">Выбранный город</span>
+                    <span class="chip gray">Нет активного события</span>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card section-pad recent-card anchor-offset" id="recentAlertsSection">
+                <div class="card-head">
+                  <div>
+                    <h2 class="section-title" id="recentAlertsAnchor">Последние тревоги</h2>
+                    <p class="section-copy">Сводка последних тревог по активному фильтру. По нажатию на любое оповещение карта фокусируется на соответствующем районе.</p>
+                  </div>
+                  <div class="small">Выбор оповещения обновляет фокус карты</div>
+                </div>
+                <div class="recent-grid">
+                  <div class="summary-list" id="recentAlertsList"></div>
+                </div>
+              </section>
+            </section>
+
+            <aside class="side-stack">
+              <section class="card section-pad cities-card anchor-offset" id="citiesSection">
+                <div class="card-head">
+                  <div>
+                    <h2 class="section-title">Поиск города</h2>
+                    <p class="section-copy">Найдите город, чтобы добавить его в личный список и быстро фокусироваться на карте и оповещениях.</p>
+                  </div>
+                  <div class="small" id="myCitiesCount">0 в моих городах</div>
+                </div>
+                <div class="picker-grid">
+                  <div>
+                    <input id="citySearch" class="search" placeholder="Поиск города для добавления или фокуса" />
+                    <div class="card-head" style="margin-bottom:10px">
+                      <div class="small">Результаты поиска</div>
+                      <div class="small" id="searchResultsCount">0</div>
+                    </div>
+                    <div class="my-cities-list" id="citySearchResults"></div>
+                  </div>
+                  <div>
+                    <div class="card-head" style="margin-bottom:10px">
+                      <div class="small">Мои города</div>
+                      <div class="small" id="selectionSummary">Нажатие = фокус • × = удалить</div>
+                    </div>
+                    <div class="my-cities-list" id="myCitiesList"></div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card section-pad filters-card anchor-offset" id="filterSection">
+                <div class="card-head">
+                  <div>
+                    <h2 class="section-title">Фильтр отображения по регионам</h2>
+                    <p class="section-copy">Переключение между всей страной, сохранёнными городами или конкретным регионом по необходимости.</p>
+                  </div>
+                  <button class="ghost-btn" type="button" id="clearSelectionBtn">Очистить выбор</button>
+                </div>
+                <div class="filters" id="filterBar"></div>
+              </section>
+
+              <section class="card history-card anchor-offset" id="historySection">
+                <div class="stream-header">
+                  <div>
+                    <h2 class="section-title">История</h2>
+                    <p class="section-copy">Полная последовательность событий для контекста и ретроспективного просмотра. По нажатию на любое оповещение карта показывает соответствующий район.</p>
+                  </div>
+                  <div class="small" id="streamSummary">0 событий</div>
+                </div>
+                <div class="stream-body" id="streamBody"></div>
+              </section>
+            </aside>
+          </div>
+        </main>
+
+        <footer class="footer">
+          <div>© Lilison13 • только для личного использования</div>
+          <details class="a11y-note" id="accessibility">
+            <summary>Заявление о доступности</summary>
+            <div class="a11y-body">
+              <h2>Заявление о доступности</h2>
+              <p>Сайт BeReady является частной экспериментальной технологической лабораторией, некоммерческой, используемой для исследований, разработки и тестирования технологий, и не действует в рамках деловой или коммерческой деятельности.</p>
+              <p>Из-за экспериментального характера проекта сайт не проходил полный процесс обеспечения доступности или проверку на соответствие израильскому стандарту 5568. Поэтому некоторые материалы и компоненты сайта могут быть доступны не в полной мере.</p>
+              <p>Сайт предоставляется «как есть» (AS IS), без каких-либо гарантий доступности, исправности или соответствия потребностям пользователя.</p>
+              <p>Сказанное не умаляет обязательных положений закона.</p>
+            </div>
+          </details>
+        </footer>
+
+        <details class="technical-panel">
+          <summary>Техническая информация</summary>
+          <div class="top-meta">
+            <div class="chip" id="clock">--:--:--</div>
+            <div class="chip" id="apiStatus">Проверка API...</div>
+            <div class="chip" id="latency">Latency: --</div>
+            <div class="chip" id="lastUpdate">Последнее обновление: --</div>
+            <div class="chip" id="healthTransport">Transport: POLLING</div>
+            <div class="chip" id="healthPacket">Last Packet: --</div>
+            <div class="chip" id="healthHistory">History: 0</div>
+          </div>
+        </details>
+
+        <div class="utility-hidden" id="timelineList"></div>
+        <div class="utility-hidden" id="timelineSummary"></div>
+        <div class="utility-hidden" id="clusterList"></div>
+        <div class="utility-hidden" id="clusterSummaryTop"></div>
+        <div class="utility-hidden" id="directionBox"></div>
+      </div>
+    </div>
+  </div>
+
+  <a href="#" class="back-to-top" id="backToTop" aria-label="Наверх">↑</a>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+  <script>
+    const CONFIG = {
+      STATUS_URL: '/red/api/status',
+      HISTORY_URL: '/red/api/history',
+      LOCALITIES_URL: '/red/api/localities',
+      ZONES_URL: '/red/api/zones',
+      POLYGONS_URL: '/red-location-polygons.json',
+      POLL_MS: 3000,
+      WS_URL: null
+    };
+
+    const MY_CITIES_STORAGE_KEY = 'redAlertMyCities';
+
+    let LOCALITIES = [];
+    let ZONES = {};
+    let ZONE_INDEX = {};
+    let LOCATION_POLYGONS = {};
+    let pollTimer = null;
+    let socket = null;
+    let lastPacketTs = 0;
+
+    const state = {
+      status: null,
+      history: [],
+      lastError: null,
+      selectedMode: 'all',
+      selectedRegion: null,
+      selectedCities: new Set(),
+      markers: new Map(),
+      map: null,
+      markersLayer: null,
+      transport: 'polling'
+    };
+
+    const els = {
+      clock: document.getElementById('clock'),
+      apiStatus: document.getElementById('apiStatus'),
+      latency: document.getElementById('latency'),
+      lastUpdate: document.getElementById('lastUpdate'),
+      statusBadge: document.getElementById('statusBadge'),
+      statusTitle: document.getElementById('statusTitle'),
+      statusSubtitle: document.getElementById('statusSubtitle'),
+      statusSection: document.getElementById('statusSection'),
+      mobilePriorityStatus: document.getElementById('mobilePriorityStatus'),
+      mobileStatusBadge: document.getElementById('mobileStatusBadge'),
+      mobileStatusTitle: document.getElementById('mobileStatusTitle'),
+      mobileStatusSubtitle: document.getElementById('mobileStatusSubtitle'),
+      mobileStatusContextLine: document.getElementById('mobileStatusContextLine'),
+      filterBar: document.getElementById('filterBar'),
+      streamBody: document.getElementById('streamBody'),
+      streamSummary: document.getElementById('streamSummary'),
+      citySearch: document.getElementById('citySearch'),
+      citySearchResults: document.getElementById('citySearchResults'),
+      myCitiesList: document.getElementById('myCitiesList'),
+      myCitiesCount: document.getElementById('myCitiesCount'),
+      searchResultsCount: document.getElementById('searchResultsCount'),
+      clearSelectionBtn: document.getElementById('clearSelectionBtn'),
+      selectionSummary: document.getElementById('selectionSummary'),
+      currentAlertCard: document.getElementById('currentAlertCard'),
+      mobileCurrentAlertCard: document.getElementById('mobileCurrentAlertCard'),
+      recentAlertsList: document.getElementById('recentAlertsList'),
+      liveSummary: document.getElementById('liveSummary'),
+      mobileLiveSummary: document.getElementById('mobileLiveSummary'),
+      mapSummary: document.getElementById('mapSummary'),
+      timelineList: document.getElementById('timelineList'),
+      timelineSummary: document.getElementById('timelineSummary'),
+      clusterList: document.getElementById('clusterList'),
+      clusterSummaryTop: document.getElementById('clusterSummaryTop'),
+      directionBox: document.getElementById('directionBox'),
+      healthTransport: document.getElementById('healthTransport'),
+      healthPacket: document.getElementById('healthPacket'),
+      healthHistory: document.getElementById('healthHistory'),    };
+
+    function updateClock() {
+      els.clock.textContent = new Date().toLocaleTimeString('ru-RU');
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function getMyCities() {
+      try {
+        const raw = localStorage.getItem(MY_CITIES_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return normalizeCities(Array.isArray(parsed) ? parsed : []);
+      } catch (error) {
+        console.error('Failed to read my cities from localStorage:', error);
+        return [];
+      }
+    }
+
+    function saveMyCities(cities) {
+      try {
+        localStorage.setItem(MY_CITIES_STORAGE_KEY, JSON.stringify(normalizeCities(cities)));
+      } catch (error) {
+        console.error('Failed to save my cities to localStorage:', error);
+      }
+    }
+
+    function isMyCity(city) {
+      return getMyCities().includes(normalizeCityName(city));
+    }
+
+    function toggleMyCity(city) {
+      const normalizedCity = normalizeCityName(city);
+      const cities = getMyCities();
+
+      if (cities.includes(normalizedCity)) {
+        saveMyCities(cities.filter(c => c !== normalizedCity));
+        state.selectedCities.delete(normalizedCity);
+      } else {
+        saveMyCities([...cities, normalizedCity]);
+      }
+
+      state.selectedCities = new Set(normalizeCities([...state.selectedCities]));
+      renderMyCities();
+      renderFilterBar();
+      renderMap();
+    }
+
+    async function fetchJson(url) {
+      const response = await fetch(`${url}?ts=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} from ${url}`);
+      }
+
+      return response.json();
+    }
+
+    async function loadLocalities() {
+      try {
+        const data = await fetchJson(CONFIG.LOCALITIES_URL);
+        LOCALITIES = Array.isArray(data)
+          ? data.map(item => ({ ...item, name: normalizeCityName(item?.name || '') }))
+          : [];
+      } catch (error) {
+        console.error('Failed to load localities:', error);
+        LOCALITIES = [];
+      }
+    }
+
+    async function loadZones() {
+      try {
+        const data = await fetchJson(CONFIG.ZONES_URL);
+        const rawZones = data && typeof data === 'object' ? data : {};
+        const normalizedZones = {};
+
+        for (const [cityName, meta] of Object.entries(rawZones)) {
+          normalizedZones[normalizeCityName(cityName)] = meta;
+        }
+
+        ZONES = normalizedZones;
+        ZONE_INDEX = normalizedZones;
+      } catch (error) {
+        console.error('Failed to load zones:', error);
+        ZONES = {};
+        ZONE_INDEX = {};
+      }
+    }
+
+    function buildFallbackPolygon(lat, lon, countdown = 60) {
+      const radiusLat = Math.max(0.008, Math.min(0.032, countdown / 5000));
+      const cosLat = Math.max(0.01, Math.cos(lat * Math.PI / 180));
+      const radiusLon = radiusLat / cosLat;
+      const ring = [];
+
+      for (let index = 0; index < 8; index += 1) {
+        const angle = ((index / 8) * 2 * Math.PI) + (Math.PI / 8);
+        ring.push([
+          +(lon + (Math.cos(angle) * radiusLon)).toFixed(6),
+          +(lat + (Math.sin(angle) * radiusLat)).toFixed(6)
+        ]);
+      }
+
+      return [ring];
+    }
+
+    function normalizePolygonRings(rings) {
+      if (!Array.isArray(rings) || !rings.length) return [];
+
+      const looksLikePoint = value =>
+        Array.isArray(value) &&
+        value.length >= 2 &&
+        typeof value[0] === 'number' &&
+        typeof value[1] === 'number';
+
+      const normalizedRings = looksLikePoint(rings[0]) ? [rings] : rings;
+      return normalizedRings
+        .map(ring => (ring || []).filter(looksLikePoint).map(([a, b]) => {
+          const looksLikeLatLng = a >= 28 && a <= 34 && b >= 34 && b <= 36.5;
+          const looksLikeLonLat = a >= 34 && a <= 36.5 && b >= 28 && b <= 34;
+          if (looksLikeLatLng) return [a, b];
+          if (looksLikeLonLat) return [b, a];
+          return [b, a];
+        }))
+        .filter(ring => ring.length >= 3);
+    }
+
+    async function loadPolygons() {
+      try {
+        const data = await fetchJson(CONFIG.POLYGONS_URL);
+        const raw = data?.localities && typeof data.localities === 'object' ? data.localities : {};
+        const normalized = {};
+
+        for (const [cityName, rings] of Object.entries(raw)) {
+          const polygonRings = normalizePolygonRings(rings);
+          normalized[cityName] = polygonRings;
+          normalized[normalizeCityName(cityName)] = polygonRings;
+        }
+
+        LOCATION_POLYGONS = normalized;
+      } catch (error) {
+        console.error('Failed to load polygons:', error);
+        LOCATION_POLYGONS = {};
+      }
+    }
+
+    function normalizeStatus(raw) {
+      if (!raw) {
+        return {
+          ok: false,
+          fetched_at: null,
+          has_active_alert: false,
+          current_alert: null,
+          error: 'No data'
+        };
+      }
+
+      const currentAlert = raw.current_alert
+        ? {
+            ...raw.current_alert,
+            data: normalizeCities(raw.current_alert?.data || [])
+          }
+        : null;
+
+      return {
+        ok: raw.ok !== false,
+        fetched_at: raw.fetched_at || null,
+        has_active_alert: Boolean(raw.has_active_alert) && !isAllClearAlert(currentAlert),
+        current_alert: currentAlert,
+        error: raw.error || null
+      };
+    }
+
+    function normalizeHistory(raw) {
+      const items = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.history)
+          ? raw.history
+          : Array.isArray(raw?.items)
+            ? raw.items
+            : [];
+
+      return items.map(item => {
+        const alert = item?.alert || item;
+        return {
+          ...item,
+          alert: {
+            ...alert,
+            data: normalizeCities(alert?.data || [])
+          }
+        };
+      });
+    }
+
+    function zoneMeta(city) {
+      const normalizedCity = normalizeCityName(city);
+      return ZONES[normalizedCity] || ZONE_INDEX[normalizedCity] || null;
+    }
+
+    function getRegions() {
+      const set = new Set();
+
+      for (const value of Object.values(ZONES)) {
+        if (value?.region) set.add(value.region);
+      }
+
+      return [...set].sort((a, b) => a.localeCompare(b, 'he'));
+    }
+
+    function getRegionCountsLast24h() {
+      const since24h = Date.now() - 24 * 60 * 60 * 1000;
+      const counts = {};
+
+      for (const item of state.history) {
+        if ((item.ts || 0) < since24h) continue;
+
+        const cities = item?.alert?.data || [];
+        const regionsInAlert = new Set();
+
+        for (const city of cities) {
+          const z = zoneMeta(city);
+          if (z?.region) regionsInAlert.add(z.region);
+        }
+
+        for (const region of regionsInAlert) {
+          counts[region] = (counts[region] || 0) + 1;
+        }
+      }
+
+      return counts;
+    }
+
+    function classifyAlert(title = '', desc = '') {
+      const text = `${title} ${desc}`.toLowerCase();
+
+      if (text.includes('היכנסו למרחב המוגן')) return 'shelter_enter';
+      if (text.includes('האירוע הסתיים') || text.includes('ניתן לצאת') || text.includes('יכולים לצאת')) return 'shelter_exit';
+      if (text.includes('Ракетный обстрел') || text.includes('טילים') || text.includes('רקטות')) return 'rocket';
+      if (text.includes('כלי טיס עוין') || text.includes('כטב')) return 'uav';
+      if (text.includes('חדירת מחבלים') || text.includes('חדירה')) return 'infiltration';
+      if (text.includes('רעידת אדמה')) return 'earthquake';
+      if (text.includes('חשד לאירוע')) return 'suspicious';
+      return 'other';
+    }
+
+    function isAllClearAlert(alert = null) {
+      if (!alert) return false;
+      return String(alert.cat || '').trim() === '13' || classifyAlert(alert.title, alert.desc) === 'shelter_exit';
+    }
+
+    function normalizeCityName(name = '') {
+      return String(name)
+        .trim()
+        .replace(/[׳‘’‛`´]/g, "'")
+        .replace(/[“”״]/g, '"')
+        .replace(/\s*-\s*/g, ' - ')
+        .replace(/\s+/g, ' ');
+    }
+
+    function normalizeCities(cities = []) {
+      return [...new Set(cities.map(x => normalizeCityName(x)))]
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, 'he'));
+    }
+
+
+    function getAlertZonesFromItem(item){
+      const alert = item?.alert || {};
+      const cities = normalizeCities(alert.data || []);
+      return zoneBadges(cities);
+    }
+
+    function getMinutesSinceItemTs(item){
+      const ts = Number(item?.ts || 0);
+      if (!ts) return null;
+      return Math.floor((Date.now() - ts) / 60000);
+    }
+
+    function formatAreaLine(item, label='Зона тревоги:'){
+      const zones = getAlertZonesFromItem(item);
+      if (!zones.length) return '';
+      return `${label} ${zones.join(' • ')}`;
+    }
+
+
+
+    function dedupAlerts(items) {
+      const sorted = [...items].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+      const out = [];
+
+      for (const item of sorted) {
+        const alert = item.alert || item;
+        const type = classifyAlert(alert?.title, alert?.desc);
+        const cities = normalizeCities(alert?.data || []);
+        const ts = item.ts || 0;
+
+        const duplicateIndex = out.findIndex(existing => {
+          const eAlert = existing.alert || existing;
+          const eType = classifyAlert(eAlert?.title, eAlert?.desc);
+          if (eType !== type) return false;
+
+          const eCities = normalizeCities(eAlert?.data || []);
+          if (JSON.stringify(eCities) !== JSON.stringify(cities)) return false;
+
+          return Math.abs((existing.ts || 0) - ts) < 60000;
+        });
+
+        if (duplicateIndex >= 0) {
+          const existing = out[duplicateIndex];
+          const existingCities = normalizeCities((existing.alert || existing)?.data || []);
+          if (cities.length >= existingCities.length) out[duplicateIndex] = item;
+          continue;
+        }
+
+        out.push(item);
+      }
+
+      return out;
+    }
+
+    function alertMatchesFilters(item) {
+      const alert = item.alert || item;
+      const cities = normalizeCities(alert?.data || []);
+
+      if (state.selectedMode === 'all') return true;
+
+      if (state.selectedMode === 'my-cities') {
+        const myCities = getMyCities();
+        return cities.some(city => myCities.includes(city));
+      }
+
+      if (state.selectedMode === 'region' && state.selectedRegion) {
+        return cities.some(city => zoneMeta(city)?.region === state.selectedRegion);
+      }
+
+      return true;
+    }
+
+    function getDisplayAlerts() {
+      const items = [];
+
+      if (state.status?.has_active_alert && state.status?.current_alert) {
+        items.push({
+          ts: Date.now(),
+          datetime: 'Сейчас',
+          live: true,
+          alert: state.status.current_alert
+        });
+      } else if (isAllClearAlert(state.status?.current_alert)) {
+        items.push({
+          ts: Date.now(),
+          datetime: 'Сейчас',
+          live: false,
+          alert: state.status.current_alert
+        });
+      }
+
+      for (const item of state.history) {
+        items.push({ ...item, live: false });
+      }
+
+      return dedupAlerts(items)
+        .filter(alertMatchesFilters)
+        .sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    }
+
+    function zoneBadges(cities) {
+      const badges = [];
+      const seen = new Set();
+
+      for (const city of cities) {
+        const z = zoneMeta(city);
+        if (!z) continue;
+
+        const text = z.zone === 'קו עימות'
+          ? z.zone
+          : [z.region, z.zone].filter(Boolean).join(' → ');
+
+        if (!text || seen.has(text)) continue;
+        seen.add(text);
+        badges.push(text);
+      }
+
+      return badges;
+    }
+
+    function getAlertColor(title, desc = '') {
+      const t = `${title || ''} ${desc || ''}`.trim();
+
+      if (
+        t.includes('Ракетный обстрел') ||
+        t.includes('טילים') ||
+        t.includes('רקטות') ||
+        t.includes('היכנסו למרחב מוגן') ||
+        t.includes('חדירת מחבלים')
+      ) return 'red';
+
+      if (t.includes('כלי טיס עוין') || t.includes('כטב')) return 'orange';
+      if (t.includes('חדירה')) return 'violet';
+      return 'gray';
+    }
+
+    function formatRelativePacketAge() {
+      if (!lastPacketTs) return '--';
+      const ageMs = Date.now() - lastPacketTs;
+      if (ageMs < 1000) return 'сейчас';
+      if (ageMs < 60000) return `${Math.floor(ageMs / 1000)} сек. назад`;
+      return `${Math.floor(ageMs / 60000)} мин. назад`;
+    }
+
+    function updateTransportUi() {
+      const latencyMs = lastPacketTs ? Date.now() - lastPacketTs : null;
+      const transport = state.transport.toUpperCase();
+
+      els.healthTransport.className = `chip ${state.transport === 'ws' ? 'blue' : 'gray'}`;
+      els.healthTransport.textContent = `Транспорт: ${transport}`;
+
+      const packetAge = formatRelativePacketAge();
+      if (latencyMs === null) {
+        els.healthPacket.className = 'chip';
+        els.healthPacket.textContent = 'Последний пакет: --';
+      } else if (latencyMs > 10000) {
+        els.healthPacket.className = 'chip red';
+        els.healthPacket.textContent = `Последний пакет: ${packetAge}`;
+      } else if (latencyMs > 4000) {
+        els.healthPacket.className = 'chip orange';
+        els.healthPacket.textContent = `Последний пакет: ${packetAge}`;
+      } else {
+        els.healthPacket.className = 'chip green';
+        els.healthPacket.textContent = `Последний пакет: ${packetAge}`;
+      }
+
+      els.healthHistory.className = 'chip';
+      els.healthHistory.textContent = `История: ${state.history.length}`;
+
+      if (latencyMs === null) {
+        els.latency.className = 'chip violet';
+        els.latency.textContent = 'Задержка: --';
+      } else if (latencyMs > 10000) {
+        els.latency.className = 'chip red';
+        els.latency.textContent = `Задержка: ${(latencyMs / 1000).toFixed(1)} сек.`;
+      } else if (latencyMs > 4000) {
+        els.latency.className = 'chip orange';
+        els.latency.textContent = `Задержка: ${(latencyMs / 1000).toFixed(1)} сек.`;
+      } else {
+        els.latency.className = 'chip violet';
+        els.latency.textContent = `Задержка: ${(latencyMs / 1000).toFixed(1)} сек.`;
+      }
+    }
+
+    function renderHeaderStatus() {
+      const ok = !state.lastError && state.status?.ok !== false;
+      const contextEls = [document.getElementById('statusContextLine'), els.mobileStatusContextLine].filter(Boolean);
+      const statusBadges = [els.statusBadge, els.mobileStatusBadge].filter(Boolean);
+      const statusTitles = [els.statusTitle, els.mobileStatusTitle].filter(Boolean);
+      const statusSubtitles = [els.statusSubtitle, els.mobileStatusSubtitle].filter(Boolean);
+      const statusSections = [els.statusSection, els.mobilePriorityStatus].filter(Boolean);
+      const setStatusFrame = ({ badgeClass, badgeText, title, subtitle, contextClass, contextHtml }) => {
+        statusBadges.forEach(el => {
+          el.className = badgeClass;
+          el.textContent = badgeText;
+        });
+        statusTitles.forEach(el => {
+          el.textContent = title;
+        });
+        statusSubtitles.forEach(el => {
+          el.textContent = subtitle;
+        });
+        contextEls.forEach(el => {
+          el.className = contextClass;
+          el.innerHTML = contextHtml;
+        });
+      };
+      const setStatusSectionInteraction = (cities, ariaLabel) => {
+        statusSections.forEach(section => {
+          if (!section) return;
+          if (cities.length) {
+            section.classList.add('clickable-card');
+            section.tabIndex = 0;
+            section.setAttribute('role', 'button');
+            section.setAttribute('aria-label', ariaLabel);
+            section.onclick = () => focusAlertOnMap(cities);
+            section.onkeydown = (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                focusAlertOnMap(cities);
+              }
+            };
+          } else {
+            section.classList.remove('clickable-card');
+            section.removeAttribute('tabindex');
+            section.removeAttribute('role');
+            section.removeAttribute('aria-label');
+            section.onclick = null;
+            section.onkeydown = null;
+          }
+        });
+      };
+      els.apiStatus.className = `chip ${ok ? 'green' : 'red'}`;
+      els.apiStatus.textContent = ok ? 'API доступен' : 'API недоступен';
+
+
+      const last = state.status?.fetched_at
+        ? new Date(state.status.fetched_at).toLocaleTimeString('ru-RU')
+        : '--';
+      els.lastUpdate.textContent = `Последнее обновление: ${last}`;
+
+      if (state.lastError) {
+        setStatusFrame({
+          badgeClass: 'status-badge alert',
+          badgeText: 'Ошибка',
+          title: 'Не удалось загрузить данные',
+          subtitle: state.lastError,
+          contextClass: 'status-context is-idle',
+          contextHtml: '<strong>Состояние отображения:</strong> данные сейчас недоступны, поэтому надёжная индикация зоны тревоги не показывается.'
+        });
+        setStatusSectionInteraction([], '');
+        document.body.classList.remove('live-alert');
+        updateTransportUi();
+        return;
+      }
+
+      if (isAllClearAlert(state.status?.current_alert)) {
+        const a = state.status.current_alert;
+        const cities = normalizeCities(a.data || []);
+        const zones = zoneBadges(cities);
+        const zoneLine = zones.length
+          ? `<strong>Зона завершения события:</strong> ${escapeHtml(zones.join(' • '))}`
+          : `<strong>Зона завершения события:</strong> ${escapeHtml(a.desc || 'Событие завершилось')}`;
+        const cityLine = `<br><strong>Населённые пункты:</strong> ${escapeHtml(cities.length ? cities.join(' • ') : 'Нет населённых пунктов')}`;
+        setStatusFrame({
+          badgeClass: 'status-badge ok',
+          badgeText: 'Неактивно',
+          title: a.title || 'Событие завершилось',
+          subtitle: 'Сейчас нет активной тревоги. Последнее событие завершилось.',
+          contextClass: 'status-context is-idle',
+          contextHtml: `${zoneLine}${cityLine}`
+        });
+        document.body.classList.remove('live-alert');
+        setStatusSectionInteraction(cities, 'Перейти к карте для завершившегося события');
+      } else if (state.status?.has_active_alert && state.status?.current_alert) {
+        const a = state.status.current_alert;
+        const cities = normalizeCities(a.data || []);
+        const zones = zoneBadges(cities);
+        const zoneLine = zones.length
+          ? `<strong>Активная зона тревоги:</strong> ${escapeHtml(zones.join(' • '))}`
+          : `<strong>Активная зона тревоги:</strong> ${escapeHtml(a.desc || 'Сейчас есть активная тревога')}`;
+        const cityLine = `<br><strong>Населённые пункты:</strong> ${escapeHtml(cities.length ? cities.join(' • ') : 'Нет населённых пунктов')}`;
+        setStatusFrame({
+          badgeClass: 'status-badge alert',
+          badgeText: 'Активная тревога',
+          title: a.title || 'Активная тревога',
+          subtitle: 'Сейчас идёт живое событие. Детали относятся только к текущей активной тревоге.',
+          contextClass: 'status-context is-live',
+          contextHtml: `${zoneLine}${cityLine}`
+        });
+        document.body.classList.add('live-alert');
+        setStatusSectionInteraction(cities, 'Перейти к карте для активной тревоги');
+      } else {
+        const items = getDisplayAlerts();
+        const current = items[0] || null;
+        const minsSince = current ? getMinutesSinceItemTs(current) : null;
+
+        const contextHtml = current?.alert && minsSince !== null && minsSince <= 10
+          ? (() => {
+              const formatted = formatAreaLine(current, 'Последняя зона');
+              const timeText = timeAgoFromTs(current.ts);
+              const lastCities = normalizeCities(current.alert.data || []);
+              return formatted
+                ? `<strong>Последняя тревога:</strong> ${escapeHtml(formatted)} <span class="muted">• ${escapeHtml(timeText)}</span><br><strong>Населённые пункты:</strong> ${escapeHtml(lastCities.length ? lastCities.join(' • ') : 'Нет населённых пунктов')}`
+                : `<strong>Последняя тревога:</strong> ${escapeHtml(current.alert.desc || 'Недавно была тревога')} <span class="muted">• ${escapeHtml(timeText)}</span><br><strong>Населённые пункты:</strong> ${escapeHtml(lastCities.length ? lastCities.join(' • ') : 'Нет населённых пунктов')}`;
+            })()
+          : '<strong>Активная тревога:</strong> сейчас отсутствует. Активная зона не показывается, чтобы не создавать путаницу.';
+        setStatusFrame({
+          badgeClass: 'status-badge ok',
+          badgeText: 'Неактивно',
+          title: 'Сейчас нет активной тревоги',
+          subtitle: 'Когда нет живого события, последняя зона показывается только как контекст, а не как активное состояние.',
+          contextClass: 'status-context is-idle',
+          contextHtml
+        });
+        document.body.classList.remove('live-alert');
+        setStatusSectionInteraction([], '');
+      }
+
+      updateTransportUi();
+    }
+
+    function renderFilterBar() {
+      const container = els.filterBar;
+      container.innerHTML = '';
+
+      const regionCounts = getRegionCountsLast24h();
+      const myCitiesCount = getMyCities().length;
+
+      const filters = [
+        { key: 'all', label: 'Вся страна' },
+        { key: 'my-cities', label: `Мои города (${myCitiesCount})` },
+        ...getRegions().map(region => ({ key: 'region', label: region, region }))
+      ];
+
+      for (const item of filters) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn';
+        btn.type = 'button';
+
+        btn.textContent = item.label;
+
+        const isActive =
+          (item.key === 'all' && state.selectedMode === 'all') ||
+          (item.key === 'my-cities' && state.selectedMode === 'my-cities') ||
+          (item.key === 'region' && state.selectedMode === 'region' && state.selectedRegion === item.region);
+
+        if (isActive) btn.classList.add('active');
+
+        btn.addEventListener('click', () => {
+          if (item.key === 'all') {
+            state.selectedMode = 'all';
+            state.selectedRegion = null;
+          } else if (item.key === 'my-cities') {
+            state.selectedMode = 'my-cities';
+            state.selectedRegion = null;
+          } else {
+            state.selectedMode = 'region';
+            state.selectedRegion = item.region;
+          }
+
+          renderAll();
+          fitMapToCurrent();
+        });
+
+        container.appendChild(btn);
+      }
+    }
+
+    function focusAlertOnMap(cities = []) {
+      const normalized = normalizeCities(cities);
+      if (!normalized.length) {
+        document.getElementById('mapSection')?.scrollIntoView({behavior:'smooth', block:'start'});
+        return;
+      }
+      state.selectedCities = new Set(normalized);
+      renderMyCities();
+      renderMap();
+      fitMapToCurrent(normalized);
+      document.getElementById('mapSection')?.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+
+    function renderCurrentAlert() {
+      const items = getDisplayAlerts();
+      const current = items[0] || null;
+      const alertContainers = [els.currentAlertCard, els.mobileCurrentAlertCard].filter(Boolean);
+
+      if (!current) {
+        alertContainers.forEach(container => {
+          container.innerHTML = `<div class="empty">Сейчас нет тревог для выбранного фильтра</div>`;
+        });
+        els.liveSummary.textContent = 'Сейчас нет события для показа';
+        if (els.mobileLiveSummary) els.mobileLiveSummary.textContent = 'Сейчас нет события для показа';
+        return;
+      }
+
+      const alert = current.alert || {};
+      const cities = normalizeCities(alert.data || []);
+      const zones = zoneBadges(cities);
+      const isLive = !!current.live;
+      const severity = getAlertColor(alert.title, alert.desc);
+
+      let stripColor = '#9ca3af';
+
+      if (severity === 'red') {
+        stripColor = '#ff3b30';
+      } else if (severity === 'orange') {
+        stripColor = '#ff9500';
+      } else if (severity === 'violet') {
+        stripColor = '#8a00c4';
+      }
+
+      const currentAlertHtml = `
+        <div class="highlight-card clickable-card" role="button" tabindex="0" aria-label="Перейти к карте для текущей тревоги">
+          <div class="highlight-strip" style="background:${stripColor};"></div>
+          <div class="highlight-content">
+            <div class="highlight-top">
+              <div class="highlight-title">${escapeHtml(alert.title || (isLive ? 'Активная тревога' : 'Последняя тревога'))}</div>
+              <div class="highlight-time">${escapeHtml(current.datetime || '--')} • ${escapeHtml(timeAgoFromTs(current.ts))}</div>
+            </div>
+
+            <div class="alert-zone-inline">
+              <strong>Зона тревоги:</strong> ${zones.length ? escapeHtml(zones.join(' • ')) : 'Зона не определена'}
+            </div>
+
+            <div class="alert-cities-inline">${escapeHtml(formatCitiesLine(cities, 'Населённые пункты:'))}</div>
+
+            <div class="highlight-desc">${escapeHtml(alert.desc || 'Без описания')}</div>
+          </div>
+        </div>
+      `;
+      alertContainers.forEach(container => {
+        container.innerHTML = currentAlertHtml;
+      });
+
+      alertContainers.forEach(container => {
+        const card = container.querySelector('.clickable-card');
+        if (!card) return;
+        card.addEventListener('click', () => focusAlertOnMap(cities));
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            focusAlertOnMap(cities);
+          }
+        });
+      });
+
+      els.liveSummary.textContent = isLive
+        ? 'Есть активная тревога в реальном времени'
+        : 'Активной тревоги нет, последняя тревога показана как контекст';
+      if (els.mobileLiveSummary) {
+        els.mobileLiveSummary.textContent = els.liveSummary.textContent;
+      }
+    }
+
+    
+    
+    function formatCitiesLine(cities, label='Населённые пункты:'){
+      if (!Array.isArray(cities) || !cities.length) return `${label} нет населённых пунктов`;
+      return `${label} ${cities.join(' • ')}`;
+    }
+
+function timeAgoFromTs(ts){
+      if(!ts) return '';
+      const diff = Math.floor((Date.now() - ts)/60000);
+      if(diff < 1) return 'меньше минуты назад';
+      if(diff === 1) return '1 минуту назад';
+      if(diff < 60) return `${diff} мин. назад`;
+      const h = Math.floor(diff/60);
+      const m = diff % 60;
+      if(h === 1 && m === 0) return '1 час назад';
+      if(h === 1) return m === 1 ? '1 час и 1 минуту назад' : `1 час и ${m} мин. назад`;
+      if(m === 0) return `${h} ч. назад`;
+      if(m === 1) return `${h} ч. 1 мин. назад`;
+      return `${h} ч. ${m} мин. назад`;
+    }
+
+function renderRecentAlerts() {
+      const items = getDisplayAlerts().slice(0, 4);
+      els.recentAlertsList.innerHTML = '';
+
+      if (!items.length) {
+        els.recentAlertsList.innerHTML = '<div class="empty">Нет тревог для отображения</div>';
+        return;
+      }
+
+      for (const item of items) {
+        const alert = item.alert || {};
+        const cities = normalizeCities(alert.data || []);
+        const areaLine = formatAreaLine(item, 'Зона тревоги:') || 'Зона не определена';
+
+        const box = document.createElement('div');
+        box.className = 'summary-item';
+        box.innerHTML = `
+          <div class="summary-item-title">${escapeHtml(alert.title || 'Тревога')}</div>
+          <div class="summary-item-meta"><span>${escapeHtml(item.datetime || "--")}</span><span>${escapeHtml(timeAgoFromTs(item.ts))}</span></div>
+          <div class="summary-cities-inline">${escapeHtml(areaLine)}</div>
+          <div class="alert-cities-inline">${escapeHtml(formatCitiesLine(cities, 'Населённые пункты:'))}</div>
+        `;
+
+        box.addEventListener('click', () => {
+          focusAlertOnMap(cities);
+        });
+
+        els.recentAlertsList.appendChild(box);
+      }
+    }
+
+    function createCityRow(city, options = {}) {
+      const {
+        active = false,
+        secondaryText = '',
+        buttonMode = 'add-remove',
+        onRowClick = null,
+        onActionClick = null
+      } = options;
+
+      const row = document.createElement('div');
+      row.className = `my-city-row${active ? ' active' : ''}`;
+
+      const buttonClass =
+        buttonMode === 'remove' ? 'remove' :
+        buttonMode === 'add' ? 'add' :
+        isMyCity(city) ? 'remove' : 'add';
+
+      const buttonText =
+        buttonMode === 'remove' ? '×' :
+        buttonMode === 'add' ? '+' :
+        isMyCity(city) ? '×' : '+';
+
+      row.innerHTML = `
+        <div class="my-city-main">
+          <div class="select-dot"></div>
+          <div style="min-width:0;flex:1;">
+            <div class="my-city-name">${escapeHtml(city)}</div>
+            <div class="small">${escapeHtml(secondaryText)}</div>
+          </div>
+        </div>
+        <div class="my-city-actions">
+          <button class="mini-btn ${buttonClass}" type="button">${buttonText}</button>
+        </div>
+      `;
+
+      if (onRowClick) row.addEventListener('click', onRowClick);
+
+      const selectDot = row.querySelector('.select-dot');
+      if (selectDot && onActionClick) {
+        selectDot.addEventListener('click', (e) => {
+          e.stopPropagation();
+          onActionClick();
+        });
+      }
+
+      row.querySelector('.mini-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (onActionClick) onActionClick();
+      });
+
+      return row;
+    }
+
+    function renderMyCities() {
+      const q = els.citySearch.value.trim();
+      const myCities = getMyCities();
+      const activeSet = new Set(state.status?.has_active_alert ? normalizeCities(state.status?.current_alert?.data || []) : []);
+
+      els.myCitiesCount.textContent = `${myCities.length} в моих городах`;
+      els.selectionSummary.textContent = state.selectedCities.size
+        ? `Сейчас выбрано: ${state.selectedCities.size}`
+        : 'Нажатие = фокус • × = удалить';
+
+      els.citySearchResults.innerHTML = '';
+
+      if (q.length > 0) {
+        const matches = normalizeCities(LOCALITIES.map(x => x.name))
+          .filter(name => name.includes(q))
+          .slice(0, 20);
+
+        els.searchResultsCount.textContent = `${matches.length} результатов`;
+
+        if (matches.length === 0) {
+          els.citySearchResults.innerHTML = '<div class="empty">Нет результатов поиска</div>';
+        } else {
+          for (const city of matches) {
+            const z = zoneMeta(city);
+            const meta = myCities.includes(city)
+              ? 'Сохранён в моих городах'
+              : (z ? [z.region, z.zone].filter(Boolean).join(' → ') : 'Без зоны');
+
+            const row = createCityRow(city, {
+              active: myCities.includes(city),
+              secondaryText: meta,
+              buttonMode: myCities.includes(city) ? 'remove' : 'add',
+              onRowClick: () => {
+                state.selectedCities = new Set(normalizeCities([city]));
+                renderMyCities();
+                renderMap();
+                fitMapToCurrent([city]);
+              },
+              onActionClick: () => toggleMyCity(city)
+            });
+
+            els.citySearchResults.appendChild(row);
+          }
+        }
+      } else {
+        els.searchResultsCount.textContent = '0';
+      }
+
+      els.myCitiesList.innerHTML = '';
+
+      if (myCities.length === 0) {
+        els.myCitiesList.innerHTML = '<div class="empty">Вы ещё не добавили города в список</div>';
+        return;
+      }
+
+      const filteredMyCities = myCities.filter(name => !q || name.includes(q));
+
+      for (const city of filteredMyCities) {
+        const z = zoneMeta(city);
+        const meta = activeSet.has(city)
+          ? 'Активно сейчас'
+          : (z ? [z.region, z.zone].filter(Boolean).join(' → ') : 'Без зоны');
+
+        const row = createCityRow(city, {
+          active: state.selectedCities.has(city),
+          secondaryText: meta,
+          buttonMode: 'remove',
+          onRowClick: () => {
+            if (state.selectedCities.has(city)) state.selectedCities.delete(city);
+            else state.selectedCities.add(city);
+            renderMyCities();
+            renderMap();
+            fitMapToCurrent(normalizeCities([...state.selectedCities]));
+          },
+          onActionClick: () => toggleMyCity(city)
+        });
+
+        els.myCitiesList.appendChild(row);
+      }
+    }
+
+    function initMap() {
+      state.map = L.map('map', { zoomControl: true, attributionControl: true }).setView([31.4, 34.9], 7);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>' 
+      }).addTo(state.map);
+
+      state.markersLayer = L.layerGroup().addTo(state.map);
+    }
+
+    function mapFeatureStyle(cityName) {
+      const normalizedCity = normalizeCityName(cityName);
+      const activeSet = new Set(state.status?.has_active_alert ? normalizeCities(state.status?.current_alert?.data || []) : []);
+      const selected = state.selectedCities.has(normalizedCity);
+
+      if (activeSet.has(normalizedCity)) {
+        return {
+          fillColor: '#ff3b30',
+          opacity: 1,
+          fillOpacity: 0.72,
+          strokeColor: '#ffffff',
+          weight: 1.5
+        };
+      }
+
+      if (selected) {
+        return {
+          fillColor: '#4da3ff',
+          opacity: 0.95,
+          fillOpacity: 0.46,
+          strokeColor: '#ffffff',
+          weight: 1.2
+        };
+      }
+
+      return null;
+    }
+
+    function renderMap() {
+      if (!state.map) return;
+
+      state.markersLayer.clearLayers();
+      state.markers.clear();
+
+      const activeCities = new Set(state.status?.has_active_alert ? normalizeCities(state.status?.current_alert?.data || []) : []);
+      const selectedCities = new Set(normalizeCities([...state.selectedCities]));
+      const myCities = new Set(normalizeCities(getMyCities()));
+      const visibleCities = new Set([...activeCities, ...selectedCities]);
+
+      els.mapSummary.textContent = activeCities.size
+        ? `Сейчас активно ${activeCities.size} населённых пунктов`
+        : visibleCities.size
+          ? 'Показаны только активные, выбранные или сохранённые населённые пункты'
+          : 'Сейчас на карте нет населённых пунктов для показа';
+
+      if (!visibleCities.size) return;
+
+      for (const loc of LOCALITIES) {
+        const cityName = normalizeCityName(loc.name);
+        if (!visibleCities.has(cityName)) continue;
+
+        const style = mapFeatureStyle(cityName);
+        if (!style) continue;
+
+        const z = zoneMeta(cityName);
+        const zoneText = z ? [z.region, z.zone].filter(Boolean).join(' → ') : 'Без зоны';
+
+        const inMyCities = myCities.has(cityName);
+        const isActive = activeCities.has(cityName);
+        const isSelected = selectedCities.has(cityName);
+
+        const polygonKey = cityName;
+        const fallbackRings = buildFallbackPolygon(Number(loc.lat), Number(loc.lon), Number(loc.countdown) || 60);
+        const polygonRings = LOCATION_POLYGONS[polygonKey]?.length
+          ? LOCATION_POLYGONS[polygonKey]
+          : normalizePolygonRings(fallbackRings);
+
+        const marker = L.polygon(polygonRings, {
+          color: style.strokeColor,
+          weight: style.weight,
+          fillColor: style.fillColor,
+          fillOpacity: style.fillOpacity,
+          opacity: style.opacity
+        });
+
+        marker.bindPopup(`
+          <div style="min-width:220px;">
+            <div style="font-weight:800;font-size:15px;margin-bottom:6px;">${escapeHtml(cityName)}</div>
+            <div style="font-size:13px;line-height:1.5;color:#6f5d95;margin-bottom:10px;">
+              ${escapeHtml(zoneText)}
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+              ${isActive ? '<span style="padding:4px 8px;border-radius:999px;background:rgba(255,59,48,.14);border:1px solid rgba(255,59,48,.3);font-size:12px;">Активно сейчас</span>' : ''}
+              ${isSelected ? '<span style="padding:4px 8px;border-radius:999px;background:rgba(77,163,255,.14);border:1px solid rgba(77,163,255,.3);font-size:12px;">Выбрано</span>' : ''}
+              ${inMyCities ? '<span style="padding:4px 8px;border-radius:999px;background:rgba(138,0,196,.14);border:1px solid rgba(138,0,196,.3);font-size:12px;">Мои города</span>' : ''}
+            </div>
+            <button
+              onclick="toggleMyCity('${String(cityName).replace(/'/g, "\\'")}')"
+              style="border:1px solid #4b3470;background:#2a1d45;color:#f7efff;padding:10px 12px;border-radius:10px;cursor:pointer;"
+            >
+              ${inMyCities ? 'Удалить из моих городов' : 'Добавить в мои города'}
+            </button>
+          </div>
+        `);
+
+        marker.on('click', () => {
+          if (state.selectedCities.has(cityName)) state.selectedCities.delete(cityName);
+          else state.selectedCities.add(cityName);
+          renderMyCities();
+          renderMap();
+        });
+
+        marker.addTo(state.markersLayer);
+        state.markers.set(cityName, marker);
+      }
+    }
+
+    function fitMapToCurrent(preferredCities = null) {
+      if (!state.map) return;
+
+      const cities = preferredCities && preferredCities.length
+        ? normalizeCities(preferredCities)
+        : normalizeCities((state.status?.has_active_alert && (state.status?.current_alert?.data || []).length)
+          ? state.status.current_alert.data
+          : [...state.selectedCities]);
+
+      const points = cities
+        .map(city => state.markers.get(city))
+        .filter(Boolean)
+        .map(marker => marker.getBounds ? marker.getBounds() : null)
+        .filter(Boolean);
+
+      if (points.length === 1) {
+        state.map.fitBounds(points[0], { padding: [30, 30], maxZoom: 10 });
+      } else if (points.length > 1) {
+        let bounds = points[0];
+        for (let index = 1; index < points.length; index += 1) {
+          bounds = bounds.extend(points[index]);
+        }
+        state.map.fitBounds(bounds, { padding: [30, 30], maxZoom: 10 });
+      } else if (LOCALITIES.length) {
+        state.map.setView([31.4, 34.9], 7);
+      }
+    }
+
+    function renderMap() {
+      if (!state.map) return;
+
+      state.markersLayer.clearLayers();
+      state.markers.clear();
+
+      const activeCities = new Set(state.status?.has_active_alert ? normalizeCities(state.status?.current_alert?.data || []) : []);
+      const selectedCities = new Set(normalizeCities([...state.selectedCities]));
+      const myCities = new Set(normalizeCities(getMyCities()));
+      const visibleCities = new Set([...activeCities, ...selectedCities]);
+
+      els.mapSummary.textContent = activeCities.size
+        ? `Сейчас активно ${activeCities.size} населённых пунктов`
+        : visibleCities.size
+          ? 'Показаны активные, выбранные или сохранённые зоны тревоги'
+          : 'Сейчас на карте нет населённых пунктов для показа';
+
+      if (!visibleCities.size) return;
+
+      for (const loc of LOCALITIES) {
+        const cityName = normalizeCityName(loc.name);
+        if (!visibleCities.has(cityName)) continue;
+
+        const style = mapFeatureStyle(cityName);
+        if (!style) continue;
+
+        const z = zoneMeta(cityName);
+        const zoneText = z ? [z.region, z.zone].filter(Boolean).join(' → ') : 'Без зоны';
+        const inMyCities = myCities.has(cityName);
+        const isActive = activeCities.has(cityName);
+        const isSelected = selectedCities.has(cityName);
+        const polygonKey = cityName;
+        const fallbackRings = buildFallbackPolygon(Number(loc.lat), Number(loc.lon), Number(loc.countdown) || 60);
+        const polygonRings = LOCATION_POLYGONS[polygonKey]?.length
+          ? LOCATION_POLYGONS[polygonKey]
+          : normalizePolygonRings(fallbackRings);
+
+        const feature = L.polygon(polygonRings, {
+          color: style.strokeColor,
+          weight: style.weight,
+          fillColor: style.fillColor,
+          fillOpacity: style.fillOpacity,
+          opacity: style.opacity
+        });
+
+        feature.bindPopup(`
+          <div style="min-width:220px;">
+            <div style="font-weight:800;font-size:15px;margin-bottom:6px;">${escapeHtml(cityName)}</div>
+            <div style="font-size:13px;line-height:1.5;color:#6f5d95;margin-bottom:10px;">
+              ${escapeHtml(zoneText)}
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+              ${isActive ? '<span style="padding:4px 8px;border-radius:999px;background:rgba(255,59,48,.14);border:1px solid rgba(255,59,48,.3);font-size:12px;">Активно сейчас</span>' : ''}
+              ${isSelected ? '<span style="padding:4px 8px;border-radius:999px;background:rgba(77,163,255,.14);border:1px solid rgba(77,163,255,.3);font-size:12px;">Выбрано</span>' : ''}
+              ${inMyCities ? '<span style="padding:4px 8px;border-radius:999px;background:rgba(138,0,196,.14);border:1px solid rgba(138,0,196,.3);font-size:12px;">Мои города</span>' : ''}
+            </div>
+            <button
+              onclick="toggleMyCity('${String(cityName).replace(/'/g, "\\'")}')"
+              style="border:1px solid #4b3470;background:#2a1d45;color:#f7efff;padding:10px 12px;border-radius:10px;cursor:pointer;"
+            >
+              ${inMyCities ? 'Удалить из моих городов' : 'Добавить в мои города'}
+            </button>
+          </div>
+        `);
+
+        feature.on('click', () => {
+          if (state.selectedCities.has(cityName)) state.selectedCities.delete(cityName);
+          else state.selectedCities.add(cityName);
+          renderMyCities();
+          renderMap();
+        });
+
+        feature.addTo(state.markersLayer);
+        state.markers.set(cityName, feature);
+      }
+    }
+
+    function fitMapToCurrent(preferredCities = null) {
+      if (!state.map) return;
+
+      const cities = preferredCities && preferredCities.length
+        ? normalizeCities(preferredCities)
+        : normalizeCities((state.status?.has_active_alert && (state.status?.current_alert?.data || []).length)
+          ? state.status.current_alert.data
+          : [...state.selectedCities]);
+
+      const layers = cities
+        .map(city => state.markers.get(city))
+        .filter(Boolean);
+
+      if (layers.length === 1) {
+        state.map.fitBounds(layers[0].getBounds(), { padding: [30, 30], maxZoom: 10 });
+      } else if (layers.length > 1) {
+        let bounds = layers[0].getBounds();
+        for (let index = 1; index < layers.length; index += 1) {
+          bounds = bounds.extend(layers[index].getBounds());
+        }
+        state.map.fitBounds(bounds, { padding: [30, 30], maxZoom: 10 });
+      } else if (LOCALITIES.length) {
+        state.map.setView([31.4, 34.9], 7);
+      }
+    }
+
+    function renderHistory() {
+      const container = els.streamBody;
+      const items = getDisplayAlerts().filter(x => !x.live);
+      container.innerHTML = '';
+      els.streamSummary.textContent = `${items.length} событий`;
+
+      if (!items.length) {
+        container.innerHTML = '<div class="empty">Сейчас нет истории для выбранного фильтра</div>';
+        return;
+      }
+
+      for (const item of items) {
+        const alert = item.alert || {};
+        const cities = normalizeCities(alert.data || []);
+        const severity = getAlertColor(alert.title, alert.desc);
+
+        const wrapper = document.createElement('article');
+        wrapper.className = `alert-item severity-${severity}`;
+
+        wrapper.innerHTML = `
+          <div class="alert-strip"></div>
+          <div class="alert-content">
+            <div class="alert-top">
+              <div class="alert-title">${escapeHtml(alert.title || 'Тревога')}</div>
+              <div class="alert-time">${escapeHtml(item.datetime || "--")} • ${escapeHtml(timeAgoFromTs(item.ts))}</div>
+            </div>
+
+            <div class="history-area-inline">${escapeHtml(formatAreaLine(item, 'Зона тревоги:') || 'Зона не определена')}</div>
+            <div class="alert-cities-inline">${escapeHtml(formatCitiesLine(cities, 'Населённые пункты:'))}</div>
+            <div class="alert-desc">${escapeHtml(alert.desc || 'Без описания')}</div>
+          </div>
+        `;
+
+        wrapper.addEventListener('click', () => {
+          state.selectedCities = new Set(normalizeCities(cities));
+          renderMyCities();
+          renderMap();
+          fitMapToCurrent(cities);
+          document.getElementById('map').scrollIntoView({behavior:'smooth', block:'center'});
+        });
+
+        container.appendChild(wrapper);
+      }
+    }
+
+    function buildTimelineEntries(items) {
+      return items.slice(0, 8).map(item => {
+        const alert = item.alert || {};
+        const cities = normalizeCities(alert.data || []);
+        return {
+          ts: item.ts || 0,
+          datetime: item.datetime || '--',
+          title: alert.title || 'Тревога',
+          count: cities.length,
+          cities
+        };
+      });
+    }
+
+    function renderTimeline() {
+      if (!els.timelineList || !els.timelineSummary) return;
+      const entries = buildTimelineEntries(getDisplayAlerts());
+      els.timelineList.innerHTML = '';
+      els.timelineSummary.textContent = `${entries.length} событий`;
+
+      if (!entries.length) {
+        els.timelineList.innerHTML = '<div class="empty">Сейчас нет событий на таймлайне</div>';
+        return;
+      }
+
+      for (const entry of entries) {
+        const box = document.createElement('div');
+        box.className = 'summary-item';
+        box.innerHTML = `
+          <div class="summary-item-title">${escapeHtml(entry.title)}</div>
+          <div class="summary-item-meta">
+            <span>${escapeHtml(entry.datetime)}</span>
+            <span>${entry.count} населённых пунктов</span>
+          </div>
+          <div class="cities">
+            ${entry.cities.slice(0,4).map(city => `<span class="city-chip">${escapeHtml(city)}</span>`).join('')}
+            ${entry.cities.length > 4 ? `<span class="city-chip">+${entry.cities.length - 4}</span>` : ''}
+          </div>
+        `;
+        els.timelineList.appendChild(box);
+      }
+    }
+
+    function clusterAlerts(items, windowMs = 120000) {
+      const historyOnly = items.filter(x => !x.live).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+      const clusters = [];
+
+      for (const item of historyOnly) {
+        const alert = item.alert || {};
+        const type = classifyAlert(alert.title, alert.desc);
+        const cities = normalizeCities(alert.data || []);
+        const ts = item.ts || 0;
+
+        let cluster = clusters.find(c =>
+          c.type === type &&
+          Math.abs(c.latestTs - ts) <= windowMs
+        );
+
+        if (!cluster) {
+          cluster = {
+            type,
+            latestTs: ts,
+            earliestTs: ts,
+            titles: new Set([alert.title || 'Тревога']),
+            cities: new Set(cities),
+            events: 1,
+            datetimes: [item.datetime || '--']
+          };
+          clusters.push(cluster);
+        } else {
+          cluster.latestTs = Math.max(cluster.latestTs, ts);
+          cluster.earliestTs = Math.min(cluster.earliestTs, ts);
+          cluster.titles.add(alert.title || 'Тревога');
+          cities.forEach(c => cluster.cities.add(c));
+          cluster.events += 1;
+          cluster.datetimes.push(item.datetime || '--');
+        }
+      }
+
+      return clusters
+        .sort((a, b) => b.latestTs - a.latestTs)
+        .slice(0, 6);
+    }
+
+    function renderClusters() {
+      if (!els.clusterList || !els.clusterSummaryTop) return;
+      const clusters = clusterAlerts(getDisplayAlerts());
+      els.clusterList.innerHTML = '';
+      els.clusterSummaryTop.textContent = clusters.length ? `${clusters.length} кластеров` : 'Кластеров нет';
+
+      if (!clusters.length) {
+        els.clusterList.innerHTML = '<div class="empty">Сейчас нет необычных кластеров</div>';
+        return;
+      }
+
+      for (const cluster of clusters) {
+        const cities = [...cluster.cities];
+        const titles = [...cluster.titles];
+
+        const box = document.createElement('div');
+        box.className = 'summary-item';
+        box.innerHTML = `
+          <div class="summary-item-title">${escapeHtml(titles[0] || 'Кластер')}</div>
+          <div class="summary-item-meta">
+            <span>${cluster.events} событий</span>
+            <span>${cities.length} населённых пунктов</span>
+          </div>
+          <div class="small">Окно времени: ${Math.round((cluster.latestTs - cluster.earliestTs) / 1000)} сек.</div>
+          <div class="cities">
+            ${cities.slice(0,5).map(city => `<span class="city-chip">${escapeHtml(city)}</span>`).join('')}
+            ${cities.length > 5 ? `<span class="city-chip">+${cities.length - 5}</span>` : ''}
+          </div>
+        `;
+
+        box.addEventListener('click', () => {
+          focusAlertOnMap(cities);
+        });
+
+        els.clusterList.appendChild(box);
+      }
+    }
+
+    function estimateDirection() {
+      const items = getDisplayAlerts().slice(0, 10);
+      const regionCounts = {};
+
+      for (const item of items) {
+        const cities = normalizeCities((item.alert || {}).data || []);
+        for (const city of cities) {
+          const region = zoneMeta(city)?.region;
+          if (!region) continue;
+          regionCounts[region] = (regionCounts[region] || 0) + 1;
+        }
+      }
+
+      const entries = Object.entries(regionCounts).sort((a, b) => b[1] - a[1]);
+
+      if (!entries.length) {
+        return { label: 'Сейчас нет доминирующего направления', details: [] };
+      }
+
+      const [topRegion, topCount] = entries[0];
+      const directionMap = {
+        'גליל עליון': 'Север',
+        'גליל מערבי': 'Северо-запад',
+        'קו עימות': 'Северная граница',
+        'מפרץ חיפה': 'Хайфский залив',
+        'כרמל': 'Север / Кармель',
+        'עמקים': 'Северо-восток',
+        'גולן': 'Северо-восток',
+        'דרום': 'Юг',
+        'מערב לכיש': 'Юго-запад',
+        'מרכז': 'Центр',
+        'ירושלים': 'Иерусалим'
+      };
+
+      return {
+        label: `${directionMap[topRegion] || topRegion}`,
+        details: entries.slice(0, 4).map(([region, count]) => `${region}: ${count}`)
+      };
+    }
+
+    function renderDirection() {
+      if (!els.directionBox) return;
+      const estimated = estimateDirection();
+      if (!estimated.details.length) {
+        els.directionBox.className = 'empty';
+        els.directionBox.innerHTML = 'Сейчас нет доминирующего направления';
+        return;
+      }
+
+      els.directionBox.className = '';
+      els.directionBox.innerHTML = `
+        <div class="summary-item" style="margin:0;">
+          <div class="summary-item-title">${escapeHtml(estimated.label)}</div>
+          <div class="small">по концентрации недавних тревог</div>
+          <div class="cities">
+            ${estimated.details.map(d => `<span class="city-chip">${escapeHtml(d)}</span>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function clearSelections() {
+      state.selectedCities.clear();
+      state.selectedMode = 'all';
+      state.selectedRegion = null;
+      renderAll();
+      fitMapToCurrent();
+    }
+
+    function applyIncomingPayload(statusRaw, historyRaw) {
+      state.status = normalizeStatus(statusRaw);
+      state.history = normalizeHistory(historyRaw);
+      state.lastError = null;
+      lastPacketTs = Date.now();
+      renderAll();
+
+      if (state.status?.has_active_alert || state.selectedCities.size) {
+        fitMapToCurrent();
+      }
+    }
+
+    async function loadData() {
+      try {
+        const [statusRaw, historyRaw] = await Promise.all([
+          fetchJson(CONFIG.STATUS_URL),
+          fetchJson(CONFIG.HISTORY_URL)
+        ]);
+
+        applyIncomingPayload(statusRaw, historyRaw);
+      } catch (error) {
+        state.lastError = error.message || String(error);
+        if (!state.status) state.status = normalizeStatus(null);
+        if (!state.history) state.history = [];
+        renderAll();
+      }
+    }
+
+    function renderAll() {
+      renderHeaderStatus();
+      renderFilterBar();
+      renderCurrentAlert();
+      renderRecentAlerts();
+      renderMyCities();
+      renderMap();
+      renderHistory();
+    }
+
+    function startPollingFallback() {
+      if (pollTimer) return;
+      state.transport = 'polling';
+      updateTransportUi();
+
+      pollTimer = setInterval(async () => {
+        await loadData();
+      }, CONFIG.POLL_MS);
+    }
+
+    function stopPollingFallback() {
+      if (!pollTimer) return;
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+
+    function connectWS() {
+      state.transport = 'polling';
+      updateTransportUi();
+    }
+
+    function wireEvents() {
+      els.citySearch.addEventListener('input', renderMyCities);
+      els.clearSelectionBtn.addEventListener('click', clearSelections);
+
+      const backToTop = document.getElementById('backToTop');
+      if (backToTop) {
+        backToTop.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        const toggleBackToTop = () => {
+          backToTop.classList.toggle('visible', window.scrollY > 500);
+        };
+
+        window.addEventListener('scroll', toggleBackToTop, { passive: true });
+        toggleBackToTop();
+      }
+
+      window.addEventListener('resize', () => {
+        if (state.map) setTimeout(() => state.map.invalidateSize(), 150);
+      });
+    }
+
+    async function start() {
+      try {
+        updateClock();
+        setInterval(updateClock, 1000);
+        setInterval(updateTransportUi, 1000);
+        setInterval(() => {
+          renderHeaderStatus();
+          renderCurrentAlert();
+          renderRecentAlerts();
+          renderHistory();
+        }, 60000);
+
+        await Promise.all([loadLocalities(), loadZones(), loadPolygons()]);
+
+        initMap();
+        wireEvents();
+        renderAll();
+
+        await loadData();
+        startPollingFallback();
+        connectWS();
+      } catch (error) {
+        console.error('Start failed:', error);
+      }
+    }
+
+    window.toggleMyCity = toggleMyCity;
+    start();
+  </script>
+</body>
+</html>

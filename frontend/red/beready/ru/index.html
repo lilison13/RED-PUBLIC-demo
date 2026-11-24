@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ru" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>BeReady Хайфа | Персональный радар ситуации</title>
+  <meta name="description" content="BeReady Хайфа это персональный радар для Хайфы и района залива, который показывает, насколько активность на севере релевантна вашему району прямо сейчас, с живой картой, понятным статусом и коротким объяснением." />
+
+  <meta property="og:title" content="BeReady Хайфа | Персональный радар ситуации" />
+  <meta property="og:description" content="Система для Хайфы, которая объясняет, что происходит вокруг вас сейчас, почему это важно и что видно на живой карте." />
+
+  <meta property="og:type" content="website" />
+  <meta name="robots" content="index,follow" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <style>
+    :root{
+      --bg:#0b0911;
+      --panel:#15111f;
+      --panel-2:#1b1628;
+      --panel-3:#221a32;
+      --text:#f6f2ff;
+      --muted:#b8afc9;
+      --border:rgba(255,255,255,.08);
+      --border-strong:rgba(255,255,255,.14);
+      --success:#2fd189;
+      --success-soft:rgba(47,209,137,.14);
+      --danger:#ff4a57;
+      --danger-soft:rgba(255,74,87,.14);
+      --uav:#8b1e2d;
+      --uav-soft:rgba(139,30,45,.18);
+      --warning:#ffbf47;
+      --warning-soft:rgba(255,191,71,.16);
+      --info:#69c5ff;
+      --info-soft:rgba(105,197,255,.14);
+      --neutral:#8f97ab;
+      --neutral-soft:rgba(143,151,171,.14);
+      --shadow:0 18px 50px rgba(0,0,0,.3);
+      --radius-xl:24px;
+      --radius-lg:20px;
+      --radius-md:16px;
+      --safe-top:max(14px, env(safe-area-inset-top));
+      --safe-bottom:max(14px, env(safe-area-inset-bottom));
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;scroll-behavior:smooth}
+    body{
+      min-height:100vh;
+      font-family:Inter,"Segoe UI",Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(105,197,255,.08), transparent 24%),
+        radial-gradient(circle at top left, rgba(255,191,71,.05), transparent 18%),
+        linear-gradient(180deg, #09070e 0%, #100d17 60%, #0c0911 100%);
+      -webkit-tap-highlight-color:transparent;
+    }
+    body.live-alert{
+      background:
+        radial-gradient(circle at top right, rgba(255,74,87,.12), transparent 22%),
+        radial-gradient(circle at top left, rgba(105,197,255,.08), transparent 18%),
+        linear-gradient(180deg, #09070e 0%, #120d16 60%, #0c0911 100%);
+    }
+
+    a{color:inherit}
+
+    .page{max-width:1120px;margin:0 auto;padding:12px;padding-bottom:var(--safe-bottom)}
+    .shell{
+      background:rgba(12,10,18,.92);
+      border:1px solid var(--border);
+      border-radius:28px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+    }
+
+    .topbar{padding:14px 14px 12px;border-bottom:1px solid var(--border);display:grid;gap:10px;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));}
+    .top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .brand{min-width:0;display:grid;gap:6px}
+    .brand-badge{
+      display:inline-flex;align-items:center;gap:8px;width:max-content;max-width:100%;min-height:32px;padding:0 11px;border-radius:999px;
+      border:1px solid var(--border-strong);background:rgba(255,255,255,.04);font-size:12px;font-weight:800;color:#f8e9ff
+    }
+    .brand-badge::before{content:"";width:8px;height:8px;border-radius:999px;background:var(--success);box-shadow:0 0 0 5px rgba(47,209,137,.12)}
+    .brand-title{margin:0;font-size:clamp(24px,6vw,34px);line-height:1.03;letter-spacing:-.02em}
+    .brand-sub{margin:0;color:var(--muted);font-size:13px;line-height:1.55;max-width:58ch}
+    .top-links{display:flex;gap:8px;flex-wrap:wrap}
+    .top-link,.cta-link,.map-btn{
+      display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 14px;border-radius:14px;text-decoration:none;
+      font-size:14px;font-weight:800;border:1px solid var(--border-strong);background:rgba(255,255,255,.04)
+    }
+    .top-link.primary{background:linear-gradient(135deg, rgba(105,197,255,.18), rgba(105,197,255,.08));border-color:rgba(105,197,255,.30)}
+
+    .disclaimer{margin:0 14px;padding:12px 14px;border-radius:16px;border:1px solid rgba(255,191,71,.28);background:linear-gradient(180deg, rgba(255,191,71,.14), rgba(255,191,71,.07));color:#fff3d5}
+    .disclaimer p{margin:0;font-size:12.5px;line-height:1.6}
+    .disclaimer strong{color:#fffaf0}
+
+    .content{display:grid;gap:12px;padding:14px}
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.018));
+      border:1px solid var(--border);
+      border-radius:20px;
+      overflow:hidden;
+      box-shadow:0 10px 26px rgba(0,0,0,.14);
+    }
+    .section-pad,.hero-card,.map-card,.details-body{padding:14px}
+    .section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+    .section-title{margin:0;font-size:17px;font-weight:900;line-height:1.2}
+    .section-desc{margin:0;color:var(--muted);font-size:12.5px;line-height:1.55;max-width:66ch}
+    .section-side{color:var(--muted);font-size:12px}
+
+    .micro-guide{
+      display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px
+    }
+    .guide-step,.intro-step{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:12px}
+    .guide-step strong,.intro-step strong{display:block;font-size:13px;margin-bottom:5px}
+    .guide-step span,.intro-step span{display:block;font-size:12px;line-height:1.5;color:var(--muted)}
+    .intro-card{padding:14px}
+    .intro-copy{margin:0 0 10px;font-size:14px;line-height:1.7;color:#efe7fb}
+    .intro-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+
+    .hero-card{position:relative;background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02))}
+    .hero-card::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at top left, rgba(47,209,137,.10), transparent 34%);pointer-events:none}
+    .hero-inner{position:relative;z-index:1;display:grid;gap:12px}
+    .hero-topline{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .updated-pill{display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:0 11px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--border-strong);font-size:12px;font-weight:800}
+    .state-code{margin:0;font-size:clamp(36px,11vw,52px);font-weight:900;line-height:1;letter-spacing:-.03em}
+    .state-title{margin:0;font-size:clamp(22px,6vw,30px);font-weight:900;line-height:1.1}
+    .state-body{font-size:14px;line-height:1.6;color:#ece2fb;margin-top:6px}
+    .relevance-box{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08)}
+    .relevance-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+    .relevance-text{font-size:15px;line-height:1.6;color:var(--text)}
+
+    .why-strip{display:grid;gap:10px}
+    .why-primary{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);font-size:15px;line-height:1.65}
+    .fact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .fact{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:12px}
+    .fact-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+    .fact-value,.list-text,.html-content{font-size:14px;line-height:1.65;color:#efe7fb;word-break:break-word}
+
+    .map-wrap{position:relative}
+    #map{width:100%;height:46vh;min-height:320px;max-height:500px;border-radius:16px;border:1px solid rgba(255,255,255,.06);overflow:hidden;background:#0f1116}
+    .map-controls{position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:8px;z-index:500}
+    .map-badge,.map-btn{border-radius:12px;padding:8px 10px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--text)}
+    .map-badge{background:rgba(10,8,16,.78)}
+    .map-btn{background:rgba(255,255,255,.10)}
+    .map-legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .chip{display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);font-size:12px;font-weight:700}
+    .chip::before{content:"";width:8px;height:8px;border-radius:999px;flex:0 0 auto;background:currentColor}
+    .chip.red{background:var(--danger-soft);border-color:rgba(255,74,87,.22);color:#ffdfe4}
+    .chip.maroon{background:var(--uav-soft);border-color:rgba(139,30,45,.24);color:#f1d8dc}
+    .chip.orange{background:var(--warning-soft);border-color:rgba(255,191,71,.22);color:#ffeaca}
+    .chip.green{background:var(--success-soft);border-color:rgba(47,209,137,.22);color:#dcfff1}
+
+    .alerts-list{display:grid;gap:8px}
+    .alert-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+    .alert-main{min-width:0}
+    .alert-area{font-size:15px;font-weight:900;margin-bottom:4px}
+    .alert-meta{font-size:12.5px;color:var(--muted);line-height:1.5}
+    .type-chip{padding:8px 10px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.1);white-space:nowrap}
+    .type-chip.rocket{background:var(--danger-soft);border-color:rgba(255,74,87,.26);color:#ffdfe4}
+    .type-chip.uav{background:var(--uav-soft);border-color:rgba(139,30,45,.24);color:#f1d8dc}
+    .type-chip.official{background:var(--warning-soft);border-color:rgba(255,191,71,.24);color:#ffeaca}
+    .type-chip.general{background:var(--info-soft);border-color:rgba(105,197,255,.24);color:#e0f3ff}
+
+    .summary-box,.reason-box{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:12px}
+    .summary-grid{display:grid;gap:10px}
+    .info-title{font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase}
+    .info-value{font-size:14px;line-height:1.6;color:#efe7fb;word-break:break-word}
+    .muted{color:var(--muted)}
+
+    details.card summary{cursor:pointer;list-style:none;font-weight:900;font-size:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px}
+    details.card summary::-webkit-details-marker{display:none}
+    .summary-hint{font-size:12px;color:var(--muted);font-weight:700}
+    .simple-list{display:grid;gap:8px}
+    .simple-list div{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);line-height:1.6;font-size:13px}
+
+    .footer{padding:0 14px 16px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+    :focus-visible{outline:2px solid #69c5ff;outline-offset:2px}
+    .a11y-note{flex-basis:100%}
+    .a11y-note summary{cursor:pointer;display:inline-block;text-decoration:underline}
+    .a11y-body{margin-top:8px;padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-radius:12px;line-height:1.6;text-align:start}
+    .a11y-body h2{margin:0 0 6px;font-size:14px}
+    .a11y-body p{margin:0 0 6px}
+    @media (min-width: 900px){
+      .layout{display:grid;grid-template-columns:minmax(0,1.48fr) minmax(300px,.92fr);gap:14px;align-items:start}
+      .main-stack,.side-stack{display:grid;gap:14px}
+      .content{gap:14px}
+      .micro-guide,.intro-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .summary-box.wide,.reason-box.wide{grid-column:1/-1}
+      #map{height:420px}
+    }
+
+    @media (max-width: 760px){
+      .page{padding:0}
+      .shell{border-radius:0;border-left:none;border-right:none;min-height:100vh}
+      .topbar,.content,.footer{padding-left:12px;padding-right:12px}
+      .topbar{padding-top:var(--safe-top);padding-bottom:10px}
+      .content{padding-bottom:14px;gap:10px}
+      .top-row{display:grid;grid-template-columns:1fr;gap:10px}
+      .brand{gap:5px}
+      .brand-sub{font-size:12.5px;line-height:1.5}
+      .top-links{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+      .top-link{width:100%;min-height:40px;font-size:13px;padding:0 10px}
+      .section-pad,.hero-card,.map-card,.details-body,.intro-card{padding:12px}
+      .disclaimer{margin:0 12px;padding:10px 12px}
+      .disclaimer p{font-size:12px;line-height:1.55}
+      .hero-inner{gap:10px}
+      .state-code{font-size:34px}
+      .state-body,.relevance-text,.why-primary,.info-value,.fact-value,.list-text,.html-content{font-size:13.5px;line-height:1.6}
+      .section-desc{font-size:12px}
+      .intro-copy{font-size:13px;line-height:1.65;margin-bottom:8px}
+      .micro-guide,.intro-grid,.fact-grid{grid-template-columns:1fr}
+      .alert-row{grid-template-columns:1fr;gap:8px;padding:10px 12px}
+      .map-legend{gap:6px}
+      .chip{min-height:30px;padding:0 10px;font-size:11.5px}
+      details.card summary{padding:12px;font-size:15px}
+    }
+
+    @media (max-width: 480px){
+      .top-links{grid-template-columns:1fr}
+      .brand-title{font-size:25px}
+      .brand-badge{min-height:30px;font-size:11.5px}
+      .section-title{font-size:15px}
+      .state-title{font-size:21px}
+      #map{height:42vh;min-height:280px}
+      .updated-pill{width:100%;justify-content:center}
+      .hero-topline{align-items:stretch}
+      .section-side{width:100%}
+    }
+  </style>
+</head>
+<body>
+<div role="note" style="position:relative;z-index:9999;padding:10px;background:#fff2b3;color:#222;font: bold 14px Arial,sans-serif;text-align:center">ДЕМОНСТРАЦИЯ • Неофициальный проект. Не используйте для принятия решений о безопасности. Следуйте официальным указаниям.</div>
+  <div class="page">
+    <div class="shell" id="app">
+      <header class="topbar">
+        <div class="top-row">
+          <div class="brand">
+            <div class="brand-badge">Персональный радар Хайфы</div>
+            <h1 class="brand-title">BeReady Хайфа</h1>
+            <p class="brand-sub">Система для Хайфы и района залива, которая дает ранний контекст по БПЛА, тревогам и активности с севера, чтобы быстро понять, начинает ли происходящее в Ливане и на севере становиться релевантным для Хайфы.</p>
+          </div>
+
+          <div class="top-links">
+            <a class="top-link primary" href="/red/ru/">Перейти к панели RED</a>
+            <a class="top-link" href="/red/beready/ru/info.html">Как это работает</a>
+            <a class="top-link" href="/red/beready/">עברית</a>
+          </div>
+        </div>
+      </header>
+
+      <div class="disclaimer">
+        <p><strong>Важно:</strong> информация на этой странице предназначена только для мониторинга и контекста. Она не заменяет официальные тревоги и указания Командования тыла. В любой экстренной ситуации действуйте только по официальным инструкциям.</p>
+      </div>
+
+      <main class="content">
+        <section class="card hero-card">
+          <div class="hero-inner">
+            <div class="hero-topline">
+              <div>
+                <h2 class="section-title">Статус Хайфы сейчас</h2>
+              </div>
+              <div class="updated-pill">Обновлено: <span id="updatedAt">—</span></div>
+            </div>
+
+            <div>
+              <p class="state-code" id="state">NORMAL</p>
+              <p class="state-title" id="simpleTitle">Сейчас нет необычных признаков для Хайфы</p>
+              <div class="state-body" id="simpleBody">Система сейчас не видит активности, которая оправдывала бы повышение расчетного уровня готовности для Хайфы.</div>
+            </div>
+
+            <div class="relevance-box">
+              <div class="relevance-title">Что это означает на практике</div>
+              <div class="relevance-text" id="currentStateMeaning">Сейчас необычных признаков нет.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card intro-card">
+          <div class="section-head">
+            <div>
+              <h2 class="section-title">Что это за система</h2>
+              <p class="section-desc">Короткое объяснение, удобное для мобильного экрана, перед переходом к деталям.</p>
+            </div>
+          </div>
+          <p class="intro-copy">BeReady это слой раннего понимания ситуации для Хайфы и окрестностей. Изначально он был создан прежде всего для контекста по <strong>БПЛА</strong>, а затем и по <strong>тревогам</strong> и активности с севера, чтобы быстро понять, начинает ли происходящее в Ливане и на севере становиться релевантным для Хайфы.</p>
+          <div class="intro-grid">
+            <div class="intro-step"><strong>Что здесь видно</strong><span>Текущий статус, короткая причина, живая карта и недавняя активность вокруг Хайфы.</span></div>
+            <div class="intro-step"><strong>Что это не значит</strong><span>Это не замена Командованию тыла. В любой экстренной ситуации действуют только по официальным инструкциям.</span></div>
+            <div class="intro-step"><strong>Как читать быстро</strong><span>Сначала смотрят на статус, потом на объяснение, и только затем открывают карту и детали.</span></div>
+          </div>
+        </section>
+
+        <div class="layout">
+          <section class="main-stack">
+            <section class="card section-pad">
+              <div class="section-head">
+                <div>
+                  <h2 class="section-title">Почему система считает именно так</h2>
+                  <p class="section-desc">Короткая сводка самых важных признаков, которые объясняют текущий статус Хайфы.</p>
+                </div>
+              </div>
+
+              <div class="why-strip">
+                <div class="why-primary" id="stateReasoning">Не выявлено достаточных признаков для повышения уровня готовности.</div>
+                <div class="fact-grid">
+                  <div class="fact">
+                    <div class="fact-title">Ближайшее событие</div>
+                    <div class="fact-value" id="nearest">Ближайших релевантных событий не выявлено</div>
+                  </div>
+                  <div class="fact">
+                    <div class="fact-title">Уверенность оценки</div>
+                    <div class="fact-value" id="confidenceText">LOW</div>
+                  </div>
+                  <div class="fact">
+                    <div class="fact-title">Оценочное время прибытия</div>
+                    <div class="fact-value" id="eta">—</div>
+                  </div>
+                  <div class="fact">
+                    <div class="fact-title">Возможное направление</div>
+                    <div class="fact-value" id="possibleApproach">Сейчас нет явного направления подхода</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="card map-card">
+              <div class="section-head">
+                <div>
+                  <h2 class="section-title">Что происходит вокруг Хайфы</h2>
+                  <p class="section-desc">Карта показывает активность вокруг Хайфы, чтобы понять, находится ли она далеко, приближается или пока не релевантна.</p>
+                </div>
+                <div class="section-side">Уверенность: <strong id="confidenceTop">LOW</strong></div>
+              </div>
+              <div class="map-wrap">
+                <div class="map-controls">
+                  <div class="map-badge" id="mapStatus">Автоотслеживание</div>
+                  <button type="button" class="map-btn" id="mapAutoBtn">Вернуться к авто-отслеживанию</button>
+                </div>
+                <div id="map" role="region" aria-label="Живая карта активности вокруг Хайфы"></div>
+              </div>
+              <div class="map-legend">
+                <span class="chip red">Ракетный огонь</span>
+                <span class="chip maroon">Беспилотный летательный аппарат</span>
+                <span class="chip orange">Официальная тревога</span>
+                <span class="chip green">Стабильный статус</span>
+              </div>
+            </section>
+          </section>
+
+          <aside class="side-stack">
+            <section class="card section-pad">
+              <div class="section-head">
+                <div>
+                  <h2 class="section-title">Что произошло недавно</h2>
+                  <p class="section-desc">Короткий список недавней активности на севере, которая может объяснить статус Хайфы.</p>
+                </div>
+              </div>
+              <div id="alertsList" class="alerts-list"></div>
+            </section>
+
+            <section class="card section-pad">
+              <div class="section-head">
+                <div>
+                  <h2 class="section-title">Что система из этого выводит</h2>
+                  <p class="section-desc">Короткая сводка того, что это означает для Хайфы, без погружения в технический слой.</p>
+                </div>
+              </div>
+              <div class="summary-grid">
+                <div class="summary-box">
+                  <div class="info-title">Текущий статус события</div>
+                  <div class="info-value" id="activeNow">Сейчас не активно</div>
+                </div>
+                <div class="summary-box">
+                  <div class="info-title">Сводка тревог</div>
+                  <div class="info-value" id="clusterSummary">0 уникальных тревог в 0 населенных пунктах</div>
+                </div>
+                <div class="summary-box wide">
+                  <div class="info-title">Основные причины</div>
+                  <div class="list-text" id="reasons">Сейчас нет необычных признаков</div>
+                </div>
+                <div class="summary-box wide">
+                  <div class="info-title">Последние населенные пункты</div>
+                  <div class="list-text" id="areas">Нет</div>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </div>
+
+        <details class="card">
+          <summary>
+            <span>Значение статусов</span>
+            <span class="summary-hint">Нажмите, чтобы открыть</span>
+          </summary>
+          <div class="details-body">
+            <div class="simple-list">
+              <div><strong>NORMAL</strong> = сейчас нет необычных признаков</div>
+              <div><strong>READY</strong> = есть активность, требующая повышенного внимания</div>
+              <div><strong>HIGH</strong> = есть эскалация или несколько признаков одновременно</div>
+              <div><strong>PRE_SHELTER</strong> = расчетный прогноз только от BeReady</div>
+              <div><strong>POST_ALERT_HIGH</strong> = временная высокая готовность после официальной тревоги</div>
+              <div><strong>OFFICIAL_EARLY_WARNING</strong> = только официальное раннее предупреждение Командования тыла</div>
+              <div><strong>SHELTER_NOW</strong> = официальная тревога, относящаяся к Хайфе</div>
+            </div>
+          </div>
+        </details>
+
+        <details class="card">
+          <summary>
+            <span>Детали движка</span>
+            <span class="summary-hint">Нажмите, чтобы открыть</span>
+          </summary>
+          <div class="details-body">
+            <div class="summary-grid">
+              <div class="reason-box">
+                <div class="info-title">Оценка риска</div>
+                <div class="info-value"><span id="score">0</span>/100</div>
+              </div>
+              <div class="reason-box">
+                <div class="info-title">Уникальные тревоги</div>
+                <div class="info-value" id="uniqueCount">0</div>
+              </div>
+              <div class="reason-box">
+                <div class="info-title">Оценка ракетной угрозы</div>
+                <div class="info-value" id="rocketScore">0</div>
+              </div>
+              <div class="reason-box">
+                <div class="info-title">Оценка БПЛА</div>
+                <div class="info-value" id="uavScore">0</div>
+              </div>
+              <div class="reason-box wide">
+                <div class="info-title">Детали ракетного движка</div>
+                <div class="info-value" id="rocketReasoning">Сейчас нет ракетной активности, относящейся к Хайфе</div>
+                <div class="info-value muted" id="rocketTechnical">Нет активных ракетных факторов</div>
+              </div>
+              <div class="reason-box wide">
+                <div class="info-title">Детали авиационного движка</div>
+                <div class="info-value" id="uavReasoning">Сейчас нет активности летательных аппаратов, относящейся к Хайфе</div>
+                <div class="info-value muted" id="uavTechnical">Нет активных факторов БПЛА</div>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="card">
+          <summary>
+            <span>Служебная информация для разработчика</span>
+            <span class="summary-hint">Нажмите, чтобы открыть</span>
+          </summary>
+          <div class="details-body">
+            <div class="summary-grid">
+              <div class="reason-box">
+                <div class="info-title">API</div>
+                <div class="info-value" id="apiStatus">API: ...</div>
+              </div>
+              <div class="reason-box">
+                <div class="info-title">Источник</div>
+                <div class="info-value" id="sourceBadge">BeReady Prediction</div>
+              </div>
+              <div class="reason-box">
+                <div class="info-title">Источник статуса</div>
+                <div class="info-value" id="stateИсточник">BeReady Prediction</div>
+              </div>
+              <div class="reason-box">
+                <div class="info-title">Тип движка</div>
+                <div class="info-value" id="modeLabel">BeReady</div>
+              </div>
+              <div class="reason-box wide">
+                <div class="info-title">Последние тревоги</div>
+                <div class="html-content" id="lastAlerts">Нет</div>
+              </div>
+            </div>
+          </div>
+        </details>
+      </main>
+
+      <footer class="footer">
+        <div>© Lilison13</div>
+        <details class="a11y-note">
+          <summary>Заявление о доступности</summary>
+          <div class="a11y-body">
+            <h2>Заявление о доступности</h2>
+            <p>Сайт BeReady является частной экспериментальной технологической лабораторией, некоммерческой, используемой для исследований, разработки и тестирования технологий, и не действует в рамках деловой или коммерческой деятельности.</p>
+            <p>Из-за экспериментального характера проекта сайт не проходил полный процесс обеспечения доступности или проверку на соответствие израильскому стандарту 5568. Поэтому некоторые материалы и компоненты сайта могут быть доступны не в полной мере.</p>
+            <p>Сайт предоставляется «как есть» (AS IS), без каких-либо гарантий доступности, исправности или соответствия потребностям пользователя.</p>
+            <p>Сказанное не умаляет обязательных положений закона.</p>
+          </div>
+        </details>
+      </footer>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="../areas.js?v=9"></script>
+  <script src="./beready.js?v=9"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
