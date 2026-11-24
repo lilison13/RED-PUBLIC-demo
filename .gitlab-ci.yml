@@ -1,0 +1,16 @@
+stages:
+  - test
+
+python-checks:
+  stage: test
+  image: python:3.11-slim
+  script:
+    - python -m compileall -q oref-monitor/app
+    - python -m unittest discover -s tests -v
+
+javascript-checks:
+  stage: test
+  image: node:22-bookworm
+  script:
+    - apt-get update -qq && apt-get install -y --no-install-recommends python3
+    - python3 scripts/check_javascript.py

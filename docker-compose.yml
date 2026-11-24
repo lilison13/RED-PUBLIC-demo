@@ -1,0 +1,71 @@
+services:
+  oref-monitor:
+    profiles: ["live"]
+    build:
+      context: .
+      dockerfile: oref-monitor/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Jerusalem
+    command: ["python3", "/opt/oref-monitor/app/oref_monitor.py"]
+    volumes:
+      - oref_data:/opt/oref-monitor/data
+      - ./runtime/api:/opt/oref-monitor/web/api
+      - oref_logs:/opt/oref-monitor/logs
+
+  beready-mailer:
+    profiles: ["live"]
+    build:
+      context: .
+      dockerfile: oref-monitor/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Jerusalem
+    command: ["python3", "/opt/oref-monitor/app/beready_mailer.py"]
+    volumes:
+      - oref_data:/opt/oref-monitor/data
+      - ./runtime/api:/opt/oref-monitor/web/api
+      - oref_logs:/opt/oref-monitor/logs
+    expose:
+      - "8788"
+    networks:
+      default:
+        aliases:
+          - beready-mailer
+
+  beready-snapshot-poller:
+    profiles: ["live"]
+    build:
+      context: .
+      dockerfile: oref-monitor/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Jerusalem
+    command: ["python3", "/opt/oref-monitor/app/beready_snapshot_poller.py"]
+    depends_on:
+      - oref-monitor
+      - beready-mailer
+    volumes:
+      - oref_data:/opt/oref-monitor/data
+      - ./runtime/api:/opt/oref-monitor/web/api
+      - oref_logs:/opt/oref-monitor/logs
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./runtime/api:/opt/oref-monitor/web/api:ro
+
+volumes:
+  oref_data:
+  oref_logs:
