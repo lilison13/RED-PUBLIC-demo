@@ -1,0 +1,30 @@
+name: Validate public portfolio
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check portfolio files
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in README.md ARCHITECTURE.md OperationsManual.md PUBLICATION.md docker-compose.yml .env.example examples/deploy-vault.example.yml; do
+            test -s "$file"
+          done
+      - name: Validate Docker Compose configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          trap 'rm -f .env' EXIT
+          docker compose --profile live config --quiet
