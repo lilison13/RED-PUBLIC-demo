@@ -2,6 +2,22 @@
 
 Independent, unofficial alert-monitoring engineering project. Python services normalize alert feeds, maintain history, compute an experimental BeReady snapshot and serve a Hebrew/Russian web interface via Nginx. **This edition is for technical demonstration only, not emergency guidance or a replacement for official instructions.**
 
+## Project motivation: Vault and DevSecOps
+
+This independent project began as a technical integration exercise to deepen my understanding of HashiCorp Vault and improve my ability to support the product in real-world customer scenarios. The goal was to explore how Vault fits into an automated software delivery workflow, particularly certificate-based access to on-premises infrastructure.
+
+The original private implementation uses:
+
+- **GitHub Actions** to trigger an automated deployment workflow on changes to the main branch.
+- **An on-premises self-hosted runner** to execute the workflow inside the private environment.
+- **HashiCorp Vault SSH secrets engine** to sign an SSH public key generated for each deployment run.
+- **SSH certificate authentication** to synchronize application files and trigger a remote deployment.
+- **Docker Compose and Nginx** to run and serve the application stack on premises.
+
+The exercise evolved into an operational alert-monitoring platform. It illustrates product integration, infrastructure automation and independent technical learning rather than a professional software development or DevOps engagement.
+
+The public edition contains the application source and a separate GitLab CI source-validation configuration. The original GitHub Actions deployment workflow, Vault configuration, credentials and private infrastructure details are intentionally excluded. See [Architecture](ARCHITECTURE.md#original-private-deployment-architecture) for the logical deployment flow.
+
 ## Architecture
 
 - Python ingestion, normalization, history merging and deduplication
